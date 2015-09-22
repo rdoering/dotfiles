@@ -7,13 +7,14 @@ config_files=($DOTFILES/*/*.zsh)
 # load the path files
 for file in ${(M)config_files:#*/path.zsh}
 do
+  #echo "Set up path with script $file"
   source $file
 done
 
 # load everything but the path and completion files
 for file in ${${config_files:#*/path.zsh}:#*/completion.zsh}
 do
-  echo "load $file"
+  #echo "Run $file"
   source $file
 done
 
@@ -24,6 +25,7 @@ compinit
 # load every completion after autocomplete loads
 for file in ${(M)config_files:#*/completion.zsh}
 do
+  #echo "Set up completion with script $file"
   source $file
 done
 
