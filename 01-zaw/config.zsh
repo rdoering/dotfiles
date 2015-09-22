@@ -1,3 +1,4 @@
-source 01-zaw/zaw/zaw.zsh
+CURDIR=$(dirname $0)
+source $CURDIR/zaw/zaw.zsh
 bindkey '^R' zaw-history
 
