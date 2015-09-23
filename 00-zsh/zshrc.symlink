@@ -25,7 +25,7 @@ compinit
 # load every completion after autocomplete loads
 for file in ${(M)config_files:#*/completion.zsh}
 do
-  #echo "Set up completion with script $file"
+  echo "Set up completion with script $file"
   source $file
 done
 
