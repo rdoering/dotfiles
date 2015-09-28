@@ -221,6 +221,14 @@ exec --no-startup-id i3-msg 'workspace M; exec gnome-terminal -x htop'
 # goto WS 1
 exec --no-startup-id i3-msg 'workspace 1'
 
+# network manager
+exec --no-startup-id nm-applet 
+
+# Background
+exec --no-startup-id nitrogen --restore
+# xsetroot -solid "#333333"
+
+
 # 
-exec /usr/bin/vmware-user&
+exec vmware-user-suid-wrapper&
 
