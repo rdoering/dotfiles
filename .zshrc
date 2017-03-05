@@ -27,5 +27,6 @@ antigen bundle zsh-users/zsh-syntax-highlighting
 # Load the theme.
 antigen theme robbyrussell/oh-my-zsh themes/dst
 
-
 antigen apply
+
+bindkey '^R' zaw-history
