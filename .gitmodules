@@ -1,3 +1,0 @@
-[submodule "01-oh-my-zsh/.oh-my-zsh"]
-	path = 01-oh-my-zsh/.oh-my-zsh
-	url = https://github.com/rdoering/oh-my-zsh.git
