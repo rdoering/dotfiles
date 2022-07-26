@@ -20,15 +20,15 @@ Yb,  88       `8b,               I8    IP'`Yb        IP'`Yb
 >[!info]
 > Make sure [GNU Stow](https://www.gnu.org/software/stow/) is installed.
 
-## install
+## install configs
 
 ```sh
 git clone https://github.com/rdoering/dotfiles.git ~/.dotfiles
-stow --dir ~/.dotfiles/home --target ~ .
+cd ~/.dotfiles && stow */
 ```
 
-## uninstall
+## uninstall configs
 
 ```sh
-stow --dir ~/.dotfiles/home --target ~ -D .
+cd ~/.dotfiles && stow -D */
 ```
