@@ -88,4 +88,6 @@ export EDITOR=vim
 
 export TIME_STYLE=long-iso
 
+# FZF
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+export FZF_DEFAULT_OPTS=" --color fg+:#ffffff,bg+:#777777"
