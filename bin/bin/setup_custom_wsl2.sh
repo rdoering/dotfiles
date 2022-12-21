@@ -16,7 +16,7 @@ then
     git --git-dir=$(realpath ~/.dotfiles/.git) pull --quiet
     echo "updated"
 else
-    git clone --quiet https://github.com/rdoering/dotfiles.git ~/.dotfiles
+    git clone --quiet git@github.com:rdoering/dotfiles.git ~/.dotfiles
     echo "cloned"
 fi
 
@@ -24,6 +24,14 @@ cd ~/.dotfiles && stow */
 # brew fish is incompatible with linux fish
 rm -rf ~/.config/fish/
 
-chsh --shell $(which fish) $USER
+echo -n "enable fish shell ... "
+PROFILE_CONTENT=$(cat ~/.profile)
+if [[ "$PROFILE_CONTENT" =~ "fish" ]]
+then
+    echo "did before"
+else
+    echo "fish" >> ~/.profile
+    echo "done"
+fi
 
 trap - EXIT
