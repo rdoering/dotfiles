@@ -27,6 +27,13 @@ git clone https://github.com/rdoering/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles && stow */
 ```
 
+## install configs on WSL2
+
+Run this command inside a Ubuntu installation
+```shell
+curl -sL https://raw.githubusercontent.com/rdoering/dotfiles/master/bin/bin/setup_custom_wsl2.sh | bash
+```
+
 ## uninstall configs
 
 ```sh
