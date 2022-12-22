@@ -32,11 +32,6 @@ else
     echo "done"
 fi
 
-rm -rf ~/.config/fish
-
-fish -c "curl -sL https://git.io/fisher | source && fisher install jorgebucaran/fisher"
-fish -c "fisher install ilancosman/tide@v5"
-fish -c "fisher install PatrickF1/fzf.fish"
 
 trap - EXIT
 
