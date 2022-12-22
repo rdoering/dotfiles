@@ -21,8 +21,6 @@ else
 fi
 
 cd ~/.dotfiles && stow */
-# brew fish is incompatible with linux fish
-rm -rf ~/.config/fish/
 
 echo -n "enable fish shell ... "
 PROFILE_CONTENT=$(cat ~/.profile)
