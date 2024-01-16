@@ -39,3 +39,25 @@ curl -sL https://raw.githubusercontent.com/rdoering/dotfiles/master/bin/bin/setu
 ```sh
 cd ~/.dotfiles && stow -D */
 ```
+
+## Deal with conflicts
+
+Conflicts like this can be solved by added changes to the repo, solve them and run `stow` again.
+```shell
+using GNU software: <http://www.gnu.org/gethelp/>
+% stow  */
+WARNING! stowing fish would cause conflicts:
+  * existing target is neither a link nor a directory: .config/fish/config.fish
+  * existing target is neither a link nor a directory: .config/fish/fish_variables
+WARNING! stowing vim would cause conflicts:
+  * existing target is neither a link nor a directory: .vimrc
+All operations aborted.
+```
+For example:
+```shell
+% stow  --adopt fish
+% stow  --adopt vim
+% git status
+% git reset --hard
+% stow */
+```
