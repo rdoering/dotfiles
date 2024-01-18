@@ -1,93 +1,68 @@
-# load zgen
-
-if [[ ! -f ${HOME}/.zgen/zgen.zsh ]]
+# load zgenom
+if [[ ! -f ${HOME}/.zgenom/zgenom.zsh ]]
 then
-  git clone https://github.com/tarjoilija/zgen.git "${HOME}/.zgen"
+  git clone https://github.com/jandamm/zgenom.git "${HOME}/.zgenom"
 fi
-source "${HOME}/.zgen/zgen.zsh"
+source "${HOME}/.zgenom/zgenom.zsh"
 
-# if the init scipt doesn't exist
-
-if ! zgen saved
+# if the init script doesn't exist
+if ! zgenom saved
 then
-echo "Creating a zgen save"
-# Disable loading default Prezto modules
-# This is necessary due to a quirk of zgen that will load these plugins after
-# our custom plugins, overwriting our customizations
-# https://github.com/tarjoilija/zgen/issues/74
-export ZGEN_PREZTO_LOAD_DEFAULT=0
-# prezto options
-zgen prezto editor key-bindings 'emacs'
-# prezto and modules
-zgen prezto
-# Default plugins
-zgen load sorin-ionescu/prezto modules/environment
-zgen load sorin-ionescu/prezto modules/terminal
-zgen load sorin-ionescu/prezto modules/editor
-zgen load sorin-ionescu/prezto modules/history
-zgen load sorin-ionescu/prezto modules/directory
-zgen load sorin-ionescu/prezto modules/spectrum
-zgen load sorin-ionescu/prezto modules/utility
-zgen load sorin-ionescu/prezto modules/completion
+  echo "Creating a zgenom save"
 
-#  zgen load sorin-ionescu/prezto modules/prompt
+  # Disable loading default Prezto modules
+  # This is necessary due to a quirk of zgenom that will load these plugins after
+  # our custom plugins, overwriting our customizations
+  # https://github.com/tarjoilija/zgenom/issues/74
+  export ZGEN_PREZTO_LOAD_DEFAULT=0
 
-# Extra plugins
+  # prezto options
+  zgenom prezto editor key-bindings 'emacs'
+  # prezto and modules
+  zgenom prezto
+  # Default plugins
+  zgenom load sorin-ionescu/prezto modules/environment
+  zgenom load sorin-ionescu/prezto modules/terminal
+  zgenom load sorin-ionescu/prezto modules/editor
+  zgenom load sorin-ionescu/prezto modules/history
+  zgenom load sorin-ionescu/prezto modules/directory
+  zgenom load sorin-ionescu/prezto modules/spectrum
+  zgenom load sorin-ionescu/prezto modules/utility
+  zgenom load sorin-ionescu/prezto modules/completion
 
-#  zgen load sorin-ionescu/prezto modules/git
+  zgenom load sorin-ionescu/prezto modules/history-substring-search
+  zgenom load robbyrussell/oh-my-zsh plugins/fasd
 
-#  zgen load sorin-ionescu/prezto modules/fasd
+  zgenom load zsh-users/zsh-completions
+  zgenom load chriskempson/base16-shell
+  zgenom load martinlindhe/base16-iterm2
 
-zgen load sorin-ionescu/prezto modules/history-substring-search
-# 3rd Party plugins
-zgen load robbyrussell/oh-my-zsh plugins/docker
-zgen load robbyrussell/oh-my-zsh plugins/fasd
-zgen load zsh-users/zaw
+  zgenom prezto command-not-found
+  zgenom prezto osx
+  zgenom prezto ssh
 
-#  zgen load zsh-users/zsh-autosuggestions
+  # completions
+  zgenom load unixorn/autoupdate-zgenom
+  zgenom load zsh-users/zsh-syntax-highlighting
+  zgenom load denysdovhan/spaceship-prompt spaceship
 
-zgen load zsh-users/zsh-completions
-zgen load chriskempson/base16-shell
-zgen load martinlindhe/base16-iterm2
-# zgen prezto homebrew
-# zgen prezto archive
-zgen prezto command-not-found
-zgen prezto osx
-zgen prezto ssh
-# completions
-# zgen load zsh-users/zsh-completions src
-zgen load unixorn/autoupdate-zgen
-zgen load zsh-users/zsh-syntax-highlighting
-zgen load denysdovhan/spaceship-prompt spaceship
+  # fzf search
+  zgenom load https://github.com/joshskidmore/zsh-fzf-history-search
 
-# fzf stuff
-if ! whence fzf >/dev/null
-then
-  test -e .fzf2 || rm -rf ~/.fzf
-  git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-  ~/.fzf/install --no-key-bindings --no-completion  --no-update-rc
+  # save all to init script
+  zgenom save
 fi
 
-# save all to init script
-zgen save
-fi
-
-source "${HOME}/.zgen/init.zsh"
-bindkey "^R" zaw-history
 DISABLE_AUTO_UPDATE="true"
 DISABLE_LS_COLORS="true"
 setopt inc_append_history
 setopt share_history
-
 setopt MAGIC_EQUAL_SUBST
 compdef -d php
-
 export EDITOR=vim
 
 # ll using iso-format
-
 export TIME_STYLE=long-iso
 
 # FZF
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 export FZF_DEFAULT_OPTS=" --color fg+:#ffffff,bg+:#777777"
