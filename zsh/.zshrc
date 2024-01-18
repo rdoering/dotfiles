@@ -53,6 +53,11 @@ then
   zgenom save
 fi
 
+if [[ ! -d ~/.tmux/plugins/tpm ]]
+then
+  git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+fi
+
 DISABLE_AUTO_UPDATE="true"
 DISABLE_LS_COLORS="true"
 setopt inc_append_history
