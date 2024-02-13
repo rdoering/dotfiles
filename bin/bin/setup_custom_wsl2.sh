@@ -8,7 +8,7 @@ sudo apt-add-repository --yes --no-update ppa:fish-shell/release-3
 
 # update and install once
 sudo apt update --ignore-missing # some repos lurking behind VPN walls
-sudo apt install --yes --quiet --ignore-missing --fix-broken fish stow fzf fd-find fdclone rclone restic zsh
+sudo apt install --yes --quiet --ignore-missing --fix-broken fish stow fzf fd-find fdclone rclone restic zsh sysbench
 
 echo -n "get my dotfiles ... "
 if [[ -d ~/.dotfiles ]]
@@ -22,5 +22,6 @@ fi
 
 cd ~/.dotfiles && stow */
 
-trap - EXIT
+chsh --shell $(which zsh)
 
+trap - EXIT
