@@ -21,7 +21,7 @@ Yb,  88       `8b,               I8    IP'`Yb        IP'`Yb
 # Installation
 
 ```bash
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply git@github.com:rdoering/dotfiles.git
+sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply git@github.com:rdoering/dotfiles.git --branch chezmoi
 ```
 
 This is a chezmoi respository meant to be used by the tool [Chezmoi](https://www.chezmoi.io)
