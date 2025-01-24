@@ -1,0 +1,34 @@
+[http]
+	sslverify = false
+[user]
+	name = rdoering
+	email = rdoering.info@gmail.com
+[giggle]
+	main-window-maximized = false
+	main-window-geometry = 956x1041+960+18
+	main-window-view = HistoryView
+[alias]
+	lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+	st = status
+	ci = commit
+	br = branch
+	co = checkout
+	df = diff
+	dc = diff --cached
+	who = shortlog -s --
+[push]
+	default = simple
+[diff]
+	tool = meld
+[difftool "diffmerge"]
+	cmd = /usr/bin/diffmerge \"$LOCAL\" \"$REMOTE\"
+[merge]
+	tool = meld
+#[mergetool "meld"]
+#	cmd = meld --output=\"$MERGED\" \"$REMOTE\" \"$BASE\" \"$LOCAL\"
+[filter "lfs"]
+	clean = git-lfs clean %f
+	smudge = git-lfs smudge %f
+	required = true
+[core]
+	autocrlf = input
