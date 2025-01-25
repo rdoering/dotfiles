@@ -34,8 +34,5 @@ case "${OS}" in
         ;;
 esac
 
-
-ansible-playbook ~/.local/bootstrap/setup.yml --ask-become-pass
-
 echo "Ansible installation complete."
 

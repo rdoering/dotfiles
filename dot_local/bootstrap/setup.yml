@@ -23,6 +23,11 @@
           - tmux
           - fd-find
           - unzip
+          - dfclone
+          - rclone
+          - restic
+          - sysbench
+          - 
         state: present
 
     - name: Change shell to zsh
