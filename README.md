@@ -25,3 +25,10 @@ sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply git@github.com:rdoering/dot
 ```
 
 This is a chezmoi respository meant to be used by the tool [Chezmoi](https://www.chezmoi.io)
+
+# Force to bootstrap
+
+```bash
+chezmoi state delete --bucket entryState --key "${HOME}/bootstrap.sh"
+chezmoi apply
+```
