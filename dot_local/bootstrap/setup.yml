@@ -19,15 +19,15 @@
         - unzip
         - rclone
         - restic
+        - sysbench
         - gh          # github integration
         - yazi        # cli file brower
         - git-delta   # for beauty git diff
         - zoxide      # cd replacement
-        - atuin       #
+        - atuin       # shell history
+        - fd          # faster find
       debian:
-        - fd-find
-        - fdclone
-        - sysbench
+        - git
       darwin:
         - git
 
@@ -44,11 +44,11 @@
       become: false
 
     - name: Install packages (Ubuntu)
-      ansible.builtin.apt:
+      ansible.builtin.homebrew:
         name: "{{ packages.common + packages.debian }}"
         state: present
-        update_cache: yes
       when: ansible_facts['os_family'] == "Debian"
+      become: false
 
     - name: Set zsh path fact
       ansible.builtin.set_fact:
