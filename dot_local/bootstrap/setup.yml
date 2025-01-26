@@ -4,7 +4,6 @@
   #become: true
   gather_facts: true
 
-
   vars:
     ansible_become_timeout: 10
     packages:
@@ -23,12 +22,13 @@
         - gh          # github integration
         - yazi        # cli file brower
         - git-delta   # for beauty git diff
+        - zoxide      # cd replacement
       debian:
         - fd-find
         - fdclone
         - sysbench
       darwin:
-        - yazi
+        - git
 
   tasks:
     - name: Get my user

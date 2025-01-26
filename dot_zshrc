@@ -82,3 +82,16 @@ if [ -d "$HOME/bin" ] && [[ ":$PATH:" != *":$HOME/bin:"* ]]; then
     PATH="$HOME/bin:$PATH"
     export PATH
 fi
+
+# nutze xozide als cd replacement
+if command -v zoxide >/dev/null 2>&1
+then
+  eval "$(zoxide init zsh)"
+  alias cd="z"
+fi
+
+# nutze xozide als cd replacement
+if command -v chezmoi >/dev/null 2>&1
+then
+  eval "$(chezmoi completion zsh)"
+fi
