@@ -58,4 +58,5 @@ export ANSIBLE_TIMEOUT=10
 export ANSIBLE_SSH_TIMEOUT=10
 export ANSIBLE_TASK_TIMEOUT
 export ANSIBLE_STDOUT_CALLBACK=debug
+set -x
 ansible-playbook {{ joinPath .chezmoi.sourceDir "dot_local/bootstrap/setup.yml" | quote }} --inventory localhost, --connection=local
