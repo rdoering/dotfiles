@@ -23,6 +23,7 @@
         - yazi        # cli file brower
         - git-delta   # for beauty git diff
         - zoxide      # cd replacement
+        - atuin       #
       debian:
         - fd-find
         - fdclone

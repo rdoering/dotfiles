@@ -96,12 +96,22 @@ then
   eval "$(chezmoi completion zsh)"
 fi
 
-# yazi
-function y() {
-  local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
-  yazi "$@" --cwd-file="$tmp"
-  if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
-    builtin cd -- "$cwd"
-  fi
-  rm -f -- "$tmp"
-}
+# yazi - terminal file browser
+if command -v yazi >/dev/null 2>&1
+then
+  function y() {
+    local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+    yazi "$@" --cwd-file="$tmp"
+    if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
+      builtin cd -- "$cwd"
+    fi
+    rm -f -- "$tmp"
+  }
+fi
+
+# atuin - terminal history
+if command -v atuin >/dev/null 2>&1
+then
+  eval "$(atuin init zsh --disable-up-arrow)"
+  eval "$(atuin gen-completions --shell zsh)"
+fi
