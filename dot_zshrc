@@ -72,4 +72,13 @@ export TIME_STYLE=long-iso
 # FZF
 export FZF_DEFAULT_OPTS=" --color fg+:#ffffff,bg+:#777777"
 
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+if [ -d "/home/linuxbrew/.linuxbrew/bin/" ]
+then
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+fi
+
+# Füge ~/bin zu PATH hinzu, falls es existiert und noch nicht enthalten ist
+if [ -d "$HOME/bin" ] && [[ ":$PATH:" != *":$HOME/bin:"* ]]; then
+    PATH="$HOME/bin:$PATH"
+    export PATH
+fi
