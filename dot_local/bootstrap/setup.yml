@@ -32,6 +32,39 @@
         - git
 
   tasks:
+    - name: Install Homebrew (non-root)
+      block:
+        - name: Create Homebrew directory
+          file:
+            path: "{{ ansible_env.HOME }}/.linuxbrew"
+            state: directory
+            mode: '0755'
+
+        - name: Download Homebrew install script
+          get_url:
+            url: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
+            dest: /tmp/homebrew-install.sh
+            mode: '0755'
+
+        - name: Install Homebrew
+          shell: |
+            NONINTERACTIVE=1 /bin/bash /tmp/homebrew-install.sh
+          environment:
+            HOME: "{{ ansible_env.HOME }}"
+          args:
+            creates: "{{ ansible_env.HOME }}/.linuxbrew/bin/brew"
+
+        - name: Add Homebrew to PATH in .bashrc
+          lineinfile:
+            path: "{{ ansible_env.HOME }}/.bashrc"
+            line: 'eval "$({{ ansible_env.HOME }}/.linuxbrew/bin/brew shellenv)"'
+            state: present
+
+        - name: Clean up install script
+          file:
+            path: /tmp/homebrew-install.sh
+            state: absent
+
     - name: Get my user
       ansible.builtin.set_fact:
         remote_regular_user: "{{ ansible_env.get('SUDO_USER', ansible_user_id) }}"
