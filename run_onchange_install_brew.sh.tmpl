@@ -1,0 +1,15 @@
+#!/bin/bash
+# .local/bin/install_brew.sh hash: {{ include "dot_local/bin/executable_install_brew.sh" | sha256sum }}
+
+# Check if brew exists in PATH
+if ! command -v brew &>/dev/null; then
+    echo "Homebrew not found."
+    read -p "Do you want to run install_brew.sh? [y/N] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        ~/.local/bin/install_brew.sh
+    else
+        echo "Homebrew installation skipped. Exiting."
+        exit 1
+    fi
+fi
