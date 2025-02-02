@@ -3,13 +3,15 @@
 
 # Check if brew exists in PATH
 if ! command -v brew &>/dev/null; then
-    echo "Homebrew not found."
-    read -p "Do you want to run install_brew.sh? [y/N] " -n 1 -r
+    echo "Homebrew not found. Installing automatically..."
+    ~/.local/bin/install_brew.sh
+else
+    echo "Homebrew is already installed."
+    read -p "Do you want to run install_brew.sh anyway? [y/N] " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         ~/.local/bin/install_brew.sh
     else
-        echo "Homebrew installation skipped. Exiting."
-        exit 1
+        echo "Homebrew installation skipped."
     fi
 fi

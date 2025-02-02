@@ -18,14 +18,6 @@ for file in "$BREW_DIR/bin/"*; do
     fi
 done
 
-# Überprüfe PATH
-source "$HOME/.bashrc"
-if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
-    echo "Warning: $BIN_DIR is not in your PATH"
-    echo "Add the following line to your ~/.bashrc or ~/.zshrc:"
-    echo "export PATH=\"\$HOME/.local/bin:\$PATH\""
-fi
-
 # Teste die Installation
 if [ -x "$BIN_DIR/brew" ]; then
     echo "Homebrew successfully installed to $BREW_DIR"
