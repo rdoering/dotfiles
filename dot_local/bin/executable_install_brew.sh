@@ -19,6 +19,7 @@ for file in "$BREW_DIR/bin/"*; do
 done
 
 # Überprüfe PATH
+source "$HOME/.bashrc"
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
     echo "Warning: $BIN_DIR is not in your PATH"
     echo "Add the following line to your ~/.bashrc or ~/.zshrc:"
