@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PACKAGES=(
-    btop vim ripgrep zsh fzf tmux unzip
+    btop ripgrep zsh fzf tmux unzip
     rclone restic sysbench gh yazi git-delta
     zoxide atuin fd
 )
