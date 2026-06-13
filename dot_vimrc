@@ -1,0 +1,8 @@
+syntax on
+
+" Wrap gitcommit file types at the appropriate length
+filetype indent plugin on
+
+" underline current cursor line
+set cursorline
+highlight CursorLine ctermbg=235 guibg=#2c323c cterm=NONE gui=NONE

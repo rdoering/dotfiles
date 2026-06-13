@@ -1,0 +1,199 @@
+
+# enable XDG support
+export XDG_CONFIG_HOME=${HOME}/.config 
+export XDG_DATA_HOME=${HOME}/.local/share
+export XDG_STATE_HOME=${HOME}/.local/state
+
+
+# link local brew
+if [ -n "$(command -v brew)" ] && [ -e "${HOME}/.local/share/homebrew" ]
+then
+    local brew_prefix="${HOME}/.local"
+    export HOMEBREW_PREFIX="$brew_prefix"
+    export HOMEBREW_CELLAR="$brew_prefix/Cellar"
+    export HOMEBREW_REPOSITORY="$brew_prefix/share/homebrew"
+    export HOMEBREW_CASK_OPTS='${HOME}/Applications'
+    export PATH="$brew_prefix/bin:$brew_prefix/sbin${PATH+:$PATH}"
+    export MANPATH="$brew_prefix/share/man${MANPATH+:$MANPATH}:"
+    export INFOPATH="$brew_prefix/share/info:${INFOPATH:-}"
+    # export HOMEBREW_NO_ANALYTICS=1
+    # export HOMEBREW_NO_ENV_HINTS=1
+fi
+
+if [[ -d /etc/ssl/certs ]]
+then
+  export SSL_CERT_DIR=/etc/ssl/certs
+fi
+
+# Reevaluate the prompt string each time it's displaying a prompt
+#setopt prompt_subst
+#zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+#autoload bashcompinit && bashcompinit
+autoload -Uz compinit
+compinit
+# Verzeichnisse zuerst anzeigen
+zstyle ':completion:*' list-dirs-first yes
+
+# Interaktive Auswahl beim Drücken von Tab
+zstyle ':completion:*' menu select
+
+# tmux plugin manager
+if [[ ! -d ~/.tmux/plugins/tpm ]]
+then
+  git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+fi
+
+DISABLE_AUTO_UPDATE="true"
+DISABLE_LS_COLORS="true"
+setopt inc_append_history
+setopt share_history
+setopt MAGIC_EQUAL_SUBST
+compdef -d php
+export EDITOR=vi
+
+
+# docker alias
+alias dc='docker compose'
+
+# ll using iso-format
+export TIME_STYLE=long-iso
+
+# Eza
+alias l="eza -l --icons --git -a"
+alias lt="eza --tree --level=2 --long --icons --git"
+alias ltree="eza --tree --level=2  --icons --git"
+
+# FZF
+export FZF_DEFAULT_OPTS=" --color fg+:#ffffff,bg+:#777777"
+
+if [ -x "/home/linuxbrew/.linuxbrew/bin/brew" ]
+then
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+fi
+
+# Füge ~/bin zu PATH hinzu, falls es existiert und noch nicht enthalten ist
+if [ -d "$HOME/bin" ] && [[ ":$PATH:" != *":$HOME/bin:"* ]]; then
+    PATH="$HOME/bin:$PATH"
+    export PATH
+fi
+
+# Füge ~/.cargo/bin zu PATH hinzu, falls es existiert und noch nicht enthalten ist
+if [ -d "$HOME/.cargo/bin" ] && [[ ":$PATH:" != *":$HOME/.cargo/bin:"* ]]; then
+    PATH="$HOME/.cargo/bin:$PATH"
+    export PATH
+fi
+
+# prompt
+if command -v starship >/dev/null 2>&1
+then
+  eval "$(starship init zsh)"
+  export STARSHIP_CONFIG=~/.config/starship/starship.toml
+fi
+
+# xozide als cd replacement
+if command -v zoxide >/dev/null 2>&1
+then
+  eval "$(zoxide init zsh)"
+  alias cd="z"
+fi
+
+# dot file management
+if command -v chezmoi >/dev/null 2>&1
+then
+  eval "$(chezmoi completion zsh)"
+fi
+
+# yazi - terminal file browser
+if command -v yazi >/dev/null 2>&1
+then
+  function y() {
+    local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+    yazi "$@" --cwd-file="$tmp"
+    if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
+      builtin cd -- "$cwd"
+    fi
+    rm -f -- "$tmp"
+  }
+fi
+
+# atuin - terminal history
+if command -v atuin >/dev/null 2>&1
+then
+  eval "$(atuin init zsh --disable-up-arrow)"
+  eval "$(atuin gen-completions --shell zsh)"
+fi
+
+# kubectl - terminal history
+if command -v kubectl >/dev/null 2>&1 && test -d ~/.kube/
+then
+  source <(kubectl completion zsh)
+  kubeconfigs=(~/.kube/*.y*ml(N))
+  if (( ${#kubeconfigs[@]} > 0 )); then
+    export KUBECONFIG="${(j:|:)kubeconfigs}"
+  fi
+  alias k=kubectl
+fi
+
+if command -v k3d >/dev/null 2>&1
+then
+  source <(k3d completion zsh)
+fi
+
+if command -v gh  >/dev/null 2>&1
+then
+  eval "$(gh completion --shell zsh)"
+fi
+
+
+if command -v just  >/dev/null 2>&1
+then
+  eval "$(just --completions zsh)"
+fi
+
+if command -v rg >/dev/null 2>&1; then
+  _rg() {
+    eval "$(rg --generate=complete-zsh | sed '1s/^/#compdef _rg rg\n/')"
+  }
+  compdef _rg rg
+fi
+
+
+if command -v nvim >/dev/null 2>&1; then
+  alias v=nvim
+  export EDITOR=nvim
+elif command -v vi >/dev/null 2>&1; then
+  alias v=vi
+  export EDITOR=vi
+fi
+
+
+if [[ -S ~/Library/Containers/com.bitwarden.desktop/Data/.bitwarden-ssh-agent.sock ]]
+then
+    export SSH_AUTH_SOCK=$(realpath ~/Library/Containers/com.bitwarden.desktop/Data/.bitwarden-ssh-agent.sock)
+fi
+
+# OpenCode - AI-powered code editor
+if command -v opencode >/dev/null 2>&1
+then
+  export PATH=/home/qtc340/.opencode/bin:$PATH
+  alias oc="opencode"
+  eval "$(opencode completion)"
+  compdef _opencode_yargs_completions oc
+fi
+
+
+export NVM_DIR="$HOME/.config/nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+# bun completions
+[ -s "/home/qtc340/.bun/_bun" ] && source "/home/qtc340/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+if [[ -z "$TMUX" && "$TERM_PROGRAM" == "kitty" ]]
+then
+  tmux attach || tmux
+fi

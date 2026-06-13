@@ -1,0 +1,7 @@
+---
+# Variables for chezmoi configuration templates
+# Customize these values per system as needed
+
+key: value1
+
+

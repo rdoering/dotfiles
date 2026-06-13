@@ -1,0 +1,81 @@
+---
+- name: Machine setup
+  hosts: localhost
+  #become: true
+  gather_facts: true
+
+  vars:
+    ansible_become_timeout: 10
+    packages:
+      common:
+        - git
+        - htop
+        - btop
+        - vim
+        - ripgrep
+        - zsh
+        - fzf
+        - tmux
+        - unzip
+        - rclone
+        - restic
+        - sysbench
+        - gh          # github integration
+        - yazi        # cli file brower
+        - git-delta   # for beauty git diff
+        - zoxide      # cd replacement
+        - atuin       # shell history
+        - fd          # faster find
+      debian:
+        - git
+      darwin:
+        - git
+
+  tasks:
+    - name: Get my user
+      ansible.builtin.set_fact:
+        remote_regular_user: "{{ ansible_env.get('SUDO_USER', ansible_user_id) }}"
+
+    - name: Install packages (macOS)
+      community.general.homebrew:
+        name: "{{ packages.common + packages.darwin }}"
+        state: present
+      when: ansible_facts['os_family'] == "Darwin"
+      become: false
+
+    - name: Install packages (Ubuntu)
+      ansible.builtin.homebrew:
+        name: "{{ packages.common + packages.debian }}"
+        state: present
+      when: ansible_facts['os_family'] == "Debian"
+      become: false
+
+    - name: Set zsh path fact
+      ansible.builtin.set_fact:
+        zsh_path: "{{ '/usr/local/bin/zsh' if ansible_facts['os_family'] == 'Darwin' else '/usr/bin/zsh' }}"
+
+    - name: Change shell to zsh
+      ansible.builtin.user:
+        name: "{{ remote_regular_user }}"
+        shell: "{{ zsh_path }}"
+
+    - name: Ensure fonts directory
+      ansible.builtin.file:
+        path: "{{ '~/Library/Fonts' if ansible_facts['os_family'] == 'Darwin' else '~' + remote_regular_user + '/.fonts' }}"
+        state: directory
+        mode: "0755"
+        owner: "{{ remote_regular_user }}"
+
+    - name: Check if Jetbrains Mono exists
+      ansible.builtin.stat:
+        path: "{{ '~/Library/Fonts/JetBrainsMonoNerdFontMono' if ansible_facts['os_family'] == 'Darwin' else '~' + remote_regular_user + '/.fonts/JetBrainsMonoNerdFontMono' }}"
+      register: jetbrains_mono_exists
+
+    - name: Download Jetbrains mono
+      when: not jetbrains_mono_exists.stat.exists  # Fixed the logic here
+      ansible.builtin.unarchive:
+        src: https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/JetBrainsMono.zip
+        dest: "{{ '~/Library/Fonts' if ansible_facts['os_family'] == 'Darwin' else '~' + remote_regular_user + '/.fonts/' }}"
+        remote_src: true
+        mode: "0755"
+        owner: "{{ remote_regular_user }}"

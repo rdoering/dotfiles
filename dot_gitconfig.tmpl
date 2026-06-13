@@ -1,0 +1,46 @@
+[http]
+	sslverify = false
+
+{{- $name := .user.name -}}
+{{- $email := .user.email -}}
+
+{{- if $name }}
+[user]
+	name = {{ $name }}
+	email = {{ $email }}
+{{- end }}
+
+[giggle]
+	main-window-maximized = false
+	main-window-geometry = 956x1041+960+18
+	main-window-view = HistoryView
+
+[alias]
+	lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+	st = status
+	ci = commit
+	br = branch
+	co = checkout
+	df = diff
+	dc = diff --cached
+	who = shortlog -s --
+
+[push]
+	default = simple
+
+[filter "lfs"]
+	clean = git-lfs clean %f
+	smudge = git-lfs smudge %f
+	required = true
+
+[core]
+	autocrlf = input
+    pager = delta
+
+[interactive]
+    diffFilter = delta --color-only
+
+[delta]
+    navigate = true  # use n and N to move between diff sections
+    line-numbers = true
+    side-by-side = true

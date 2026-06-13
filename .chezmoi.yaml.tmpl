@@ -1,0 +1,22 @@
+{{ $email := promptStringOnce . "email" "email" }}
+{{ $name := promptStringOnce . "name" "name" }}
+{{ $diff_cmd := promptStringOnce . "diff.command" "diff command" "delta" }}
+
+encryption: age
+
+diff:
+  command: {{ $diff_cmd }}
+
+git:
+  autoCommit: true
+  autoPush: true
+
+age:
+  identity: "~/.config/chezmoi/age-identity.txt"
+  recipient: "age1e6rgau5x2tf64mavjw8wwnl09r2eyf6ja9yrrzvtvjd7l7q09afq0aqy2x"
+
+data:
+  user:
+    email: {{ $email | quote }}
+    name: {{ $name | quote }}
+  diff.command: {{ $diff_cmd }}

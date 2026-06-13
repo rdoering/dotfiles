@@ -1,0 +1,4 @@
+[mgr]
+prepend_keymap = [
+  { on = ["<Enter>"], run = "enter", desc = "Enter the selected file or enter the directory" },
+]
