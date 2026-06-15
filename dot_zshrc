@@ -51,6 +51,9 @@ setopt MAGIC_EQUAL_SUBST
 compdef -d php
 export EDITOR=vi
 
+# general key bindings
+bindkey "\e[1;5C" forward-word
+bindkey "\e[1;5D" backward-word
 
 # docker alias
 alias dc='docker compose'
@@ -133,6 +136,7 @@ then
     export KUBECONFIG="${(j.:.)kubeconfigs}"
   fi
   alias k=kubectl
+  alias kctx='kubectl config use-context'
 fi
 
 if command -v k3d >/dev/null 2>&1

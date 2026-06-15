@@ -142,6 +142,15 @@ rust_target_arch() {
     esac
 }
 
+# Go's GOARCH naming, used by release assets built with goreleaser et al.
+go_arch() {
+    case "$(uname -m)" in
+        x86_64) echo "amd64" ;;
+        aarch64 | arm64) echo "arm64" ;;
+        *) echo "" ;;
+    esac
+}
+
 github_latest_tag() {
     local repo="$1" json tag
     # Read into a variable first: a piped `grep -m1`/`head` would close the
@@ -186,6 +195,32 @@ install_tarball_binary() {
     fi
     rm -rf "$tmp"
 
+    if [[ -x "$HOME/.local/bin/$cmd" ]]; then
+        echo "$cmd installed to ~/.local/bin"
+    else
+        record_error "$cmd: install verification failed"
+    fi
+    return 0
+}
+
+# Download a raw (uncompressed) release binary directly to ~/.local/bin.
+install_raw_binary() {
+    local cmd="$1"
+    local url="$2"
+    local tmp
+    tmp="$(mktemp)"
+    if ! curl -fsSL "$url" -o "$tmp"; then
+        record_error "$cmd: download failed ($url)"
+        rm -f "$tmp"
+        return 0
+    fi
+    mkdir -p "$HOME/.local/bin"
+    if ! install -m 0755 "$tmp" "$HOME/.local/bin/$cmd"; then
+        record_error "$cmd: install to ~/.local/bin failed"
+        rm -f "$tmp"
+        return 0
+    fi
+    rm -f "$tmp"
     if [[ -x "$HOME/.local/bin/$cmd" ]]; then
         echo "$cmd installed to ~/.local/bin"
     else
@@ -252,6 +287,92 @@ install_github_tagged_tool() {
 
 install_delta_linux() {
     install_github_tagged_tool "delta" "dandavison/delta" "musl"
+}
+
+# doggo (Go) names its assets "doggo_<version>_Linux_<arch>.tar.gz" with arch
+# x86_64/arm64, so the rust-tool helpers don't fit. Not packaged in apt.
+install_doggo_linux() {
+    if command -v doggo >/dev/null 2>&1; then
+        echo "doggo already installed, skipping..."
+        return 0
+    fi
+    local arch
+    case "$(uname -m)" in
+        x86_64) arch="x86_64" ;;
+        aarch64 | arm64) arch="arm64" ;;
+        *)
+            echo "doggo: unsupported architecture $(uname -m), skipping..."
+            return 0
+            ;;
+    esac
+    local tag
+    tag="$(github_latest_tag "mr-karan/doggo")"
+    if [[ -z "$tag" ]]; then
+        record_error "doggo: could not determine latest release version"
+        return 0
+    fi
+    install_tarball_binary "doggo" \
+        "https://github.com/mr-karan/doggo/releases/download/${tag}/doggo_${tag#v}_Linux_${arch}.tar.gz"
+}
+
+# yq ships raw per-arch binaries; its tarball names the binary "yq_linux_<arch>"
+# (not "yq"), so download the raw binary directly. The apt "yq" is a different,
+# unrelated tool, hence GitHub even on Linux.
+install_yq_linux() {
+    if command -v yq >/dev/null 2>&1; then
+        echo "yq already installed, skipping..."
+        return 0
+    fi
+    local arch
+    arch="$(go_arch)"
+    if [[ -z "$arch" ]]; then
+        echo "yq: unsupported architecture $(uname -m), skipping..."
+        return 0
+    fi
+    install_raw_binary "yq" \
+        "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${arch}"
+}
+
+# jqp (Go) asset: versionless "jqp_Linux_<arch>.tar.gz" (x86_64/arm64), binary
+# named "jqp" inside. Not packaged in apt.
+install_jqp_linux() {
+    if command -v jqp >/dev/null 2>&1; then
+        echo "jqp already installed, skipping..."
+        return 0
+    fi
+    local arch
+    case "$(uname -m)" in
+        x86_64) arch="x86_64" ;;
+        aarch64 | arm64) arch="arm64" ;;
+        *)
+            echo "jqp: unsupported architecture $(uname -m), skipping..."
+            return 0
+            ;;
+    esac
+    install_tarball_binary "jqp" \
+        "https://github.com/noahgorstein/jqp/releases/latest/download/jqp_Linux_${arch}.tar.gz"
+}
+
+# gron (Go) asset: "gron-linux-<arch>-<version>.tgz" (amd64/arm64), binary named
+# "gron" inside. Not packaged in apt.
+install_gron_linux() {
+    if command -v gron >/dev/null 2>&1; then
+        echo "gron already installed, skipping..."
+        return 0
+    fi
+    local arch tag
+    arch="$(go_arch)"
+    if [[ -z "$arch" ]]; then
+        echo "gron: unsupported architecture $(uname -m), skipping..."
+        return 0
+    fi
+    tag="$(github_latest_tag "tomnomnom/gron")"
+    if [[ -z "$tag" ]]; then
+        record_error "gron: could not determine latest release version"
+        return 0
+    fi
+    install_tarball_binary "gron" \
+        "https://github.com/tomnomnom/gron/releases/download/${tag}/gron-linux-${arch}-${tag#v}.tgz"
 }
 
 install_just_linux() {
@@ -384,6 +505,34 @@ install_just() {
     esac
 }
 
+install_doggo() {
+    case "$os" in
+        Darwin) install_brew_pkg "doggo" "doggo" ;;
+        Linux) install_doggo_linux ;;
+    esac
+}
+
+install_yq() {
+    case "$os" in
+        Darwin) install_brew_pkg "yq" "yq" ;;
+        Linux) install_yq_linux ;;
+    esac
+}
+
+install_jqp() {
+    case "$os" in
+        Darwin) install_brew_pkg "jqp" "jqp" ;;
+        Linux) install_jqp_linux ;;
+    esac
+}
+
+install_gron() {
+    case "$os" in
+        Darwin) install_brew_pkg "gron" "gron" ;;
+        Linux) install_gron_linux ;;
+    esac
+}
+
 install_atuin() {
     case "$os" in
         Darwin) install_brew_pkg "atuin" "atuin" ;;
@@ -485,6 +634,10 @@ install_tool "p7zip" "7z" "p7zip-full" "7z"
 install_tool "marksman" "marksman" "marksman" "marksman"
 install_neovim
 install_just
+install_doggo
+install_yq
+install_jqp
+install_gron
 install_claude_code
 install_opencode
 
