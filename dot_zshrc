@@ -124,13 +124,13 @@ then
   eval "$(atuin gen-completions --shell zsh)"
 fi
 
-# kubectl - terminal history
+# kubectl - K8s management
 if command -v kubectl >/dev/null 2>&1 && test -d ~/.kube/
 then
   source <(kubectl completion zsh)
-  kubeconfigs=(~/.kube/*.y*ml(N))
+  kubeconfigs=(~/.kube/config(N) ~/.kube/*.y*ml(N))
   if (( ${#kubeconfigs[@]} > 0 )); then
-    export KUBECONFIG="${(j:|:)kubeconfigs}"
+    export KUBECONFIG="${(j.:.)kubeconfigs}"
   fi
   alias k=kubectl
 fi
