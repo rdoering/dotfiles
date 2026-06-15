@@ -54,6 +54,7 @@ export EDITOR=vi
 
 # docker alias
 alias dc='docker compose'
+alias d=docker
 
 # ll using iso-format
 export TIME_STYLE=long-iso

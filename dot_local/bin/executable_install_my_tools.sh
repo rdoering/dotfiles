@@ -304,10 +304,69 @@ install_neovim_linux() {
     fi
 }
 
+# yazi ships its Linux release as a .zip containing two binaries (yazi and ya),
+# so neither the tarball helpers nor apt (not packaged) apply. musl build keeps
+# it independent of the host glibc version.
+install_yazi_linux() {
+    if command -v yazi >/dev/null 2>&1; then
+        echo "yazi already installed, skipping..."
+        return 0
+    fi
+    local arch
+    arch="$(rust_target_arch)"
+    if [[ -z "$arch" ]]; then
+        echo "yazi: unsupported architecture $(uname -m), skipping..."
+        return 0
+    fi
+    if ! command -v unzip >/dev/null 2>&1; then
+        record_error "yazi: unzip not found, cannot extract release"
+        return 0
+    fi
+    local url tmp
+    url="https://github.com/sxyazi/yazi/releases/latest/download/yazi-${arch}-unknown-linux-musl.zip"
+    tmp="$(mktemp -d)"
+    if ! curl -fsSL "$url" -o "$tmp/yazi.zip"; then
+        record_error "yazi: download failed ($url)"
+        rm -rf "$tmp"
+        return 0
+    fi
+    if ! unzip -q "$tmp/yazi.zip" -d "$tmp"; then
+        record_error "yazi: extraction failed"
+        rm -rf "$tmp"
+        return 0
+    fi
+    mkdir -p "$HOME/.local/bin"
+    local cmd bin
+    for cmd in yazi ya; do
+        bin="$(find "$tmp" -type f -name "$cmd" -print -quit)"
+        if [[ -z "$bin" ]]; then
+            record_error "yazi: binary '$cmd' not found in archive"
+            continue
+        fi
+        if ! install -m 0755 "$bin" "$HOME/.local/bin/$cmd"; then
+            record_error "yazi: install of '$cmd' to ~/.local/bin failed"
+        fi
+    done
+    rm -rf "$tmp"
+    if [[ -x "$HOME/.local/bin/yazi" ]]; then
+        echo "yazi installed to ~/.local/bin"
+    else
+        record_error "yazi: install verification failed"
+    fi
+    return 0
+}
+
 install_eza() {
     case "$os" in
         Darwin) install_brew_pkg "eza" "eza" ;;
         Linux) install_eza_linux ;;
+    esac
+}
+
+install_yazi() {
+    case "$os" in
+        Darwin) install_brew_pkg "yazi" "yazi" ;;
+        Linux) install_yazi_linux ;;
     esac
 }
 
@@ -416,7 +475,7 @@ install_tool "rclone" "rclone" "rclone" "rclone"
 install_tool "restic" "restic" "restic" "restic"
 install_tool "sysbench" "sysbench" "sysbench" "sysbench"
 install_tool "gh" "gh" "gh" "gh"
-install_tool "yazi" "yazi" "yazi" "yazi"
+install_yazi
 install_delta
 install_zoxide
 install_atuin
