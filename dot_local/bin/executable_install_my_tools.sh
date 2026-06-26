@@ -289,30 +289,11 @@ install_delta_linux() {
     install_github_tagged_tool "delta" "dandavison/delta" "musl"
 }
 
-# doggo (Go) names its assets "doggo_<version>_Linux_<arch>.tar.gz" with arch
-# x86_64/arm64, so the rust-tool helpers don't fit. Not packaged in apt.
+# doggo ships versionless release assets named "doggo-linux-<arch>.tar.gz"
+# (arch x86_64/aarch64, matching rust_target_arch) with a binary named "doggo"
+# inside. Not packaged in apt.
 install_doggo_linux() {
-    if command -v doggo >/dev/null 2>&1; then
-        echo "doggo already installed, skipping..."
-        return 0
-    fi
-    local arch
-    case "$(uname -m)" in
-        x86_64) arch="x86_64" ;;
-        aarch64 | arm64) arch="arm64" ;;
-        *)
-            echo "doggo: unsupported architecture $(uname -m), skipping..."
-            return 0
-            ;;
-    esac
-    local tag
-    tag="$(github_latest_tag "mr-karan/doggo")"
-    if [[ -z "$tag" ]]; then
-        record_error "doggo: could not determine latest release version"
-        return 0
-    fi
-    install_tarball_binary "doggo" \
-        "https://github.com/mr-karan/doggo/releases/download/${tag}/doggo_${tag#v}_Linux_${arch}.tar.gz"
+    install_github_latest_tarball "doggo" "mr-karan/doggo" "doggo-linux-{arch}.tar.gz"
 }
 
 # yq ships raw per-arch binaries; its tarball names the binary "yq_linux_<arch>"
@@ -596,6 +577,43 @@ install_opencode() {
     install_via_curl "opencode" "https://opencode.ai/install" "$HOME/.opencode/bin/opencode"
 }
 
+# --- default login shell -----------------------------------------------------
+
+# Make zsh the login shell. chsh only accepts shells listed in /etc/shells, and
+# editing /etc/passwd needs root, so this requires passwordless sudo; otherwise
+# it prints the manual command and skips (a non-error: the tools still work).
+set_default_shell_zsh() {
+    local zsh_path
+    zsh_path="$(command -v zsh)" || {
+        echo "zsh not found, cannot set default shell, skipping..."
+        return 0
+    }
+
+    local current
+    current="$(getent passwd "$USER" 2>/dev/null | cut -d: -f7)"
+    [[ -z "$current" ]] && current="${SHELL:-}"
+    if [[ "$current" == "$zsh_path" ]]; then
+        echo "default shell already zsh, skipping..."
+        return 0
+    fi
+
+    if ! can_sudo; then
+        echo "cannot set default shell to zsh (sudo needs a password); run manually: chsh -s $zsh_path"
+        return 0
+    fi
+
+    if [[ -r /etc/shells ]] && ! grep -qxF "$zsh_path" /etc/shells; then
+        echo "$zsh_path" | sudo tee -a /etc/shells >/dev/null
+    fi
+
+    if ! sudo chsh -s "$zsh_path" "$USER"; then
+        record_error "failed to set default shell to zsh"
+        return 0
+    fi
+    echo "default shell set to zsh (log out and back in for it to take effect)"
+    return 0
+}
+
 install_starship() {
     if command -v starship >/dev/null 2>&1; then
         echo "starship already installed, skipping..."
@@ -640,6 +658,8 @@ install_jqp
 install_gron
 install_claude_code
 install_opencode
+
+set_default_shell_zsh
 
 if [[ ${#FAILED[@]} -gt 0 ]]; then
     echo >&2
