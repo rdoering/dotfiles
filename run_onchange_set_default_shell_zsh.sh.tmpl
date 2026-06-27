@@ -7,6 +7,20 @@
 
 set -euo pipefail
 
+status_line() {
+    local status="$1"
+    local name="$2"
+    local message="$3"
+    local label="$status"
+
+    case "$status" in
+        ok) label=" ok " ;;
+        *) label="$(printf '%-4s' "$status")" ;;
+    esac
+
+    printf '[%s] %-12s %s\n' "$label" "$name" "$message"
+}
+
 can_sudo() {
     command -v sudo >/dev/null 2>&1 || return 1
     sudo -k >/dev/null 2>&1
@@ -14,7 +28,7 @@ can_sudo() {
 }
 
 zsh_path="$(command -v zsh 2>/dev/null)" || {
-    echo "zsh not found, skipping..."
+    status_line skip shell "zsh not found"
     exit 0
 }
 
@@ -26,12 +40,12 @@ fi
 [[ -z "$current" ]] && current="${SHELL:-}"
 
 if [[ "$current" == "$zsh_path" ]]; then
-    echo "default shell already zsh, skipping..."
+    status_line skip shell "default already zsh"
     exit 0
 fi
 
 if ! can_sudo; then
-    echo "cannot set default shell to zsh (sudo needs password); run manually: chsh -s $zsh_path"
+    status_line skip shell "sudo needs password; run: chsh -s $zsh_path"
     exit 0
 fi
 
@@ -40,4 +54,4 @@ if [[ -r /etc/shells ]] && ! grep -qxF "$zsh_path" /etc/shells; then
 fi
 
 sudo chsh -s "$zsh_path" "$USER"
-echo "default shell set to zsh (log out and back in)"
+status_line ok shell "default set to zsh; log out and back in"

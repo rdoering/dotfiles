@@ -12,7 +12,21 @@ apt_enabled=0
 FAILED=()
 record_error() {
     FAILED+=("$1")
-    echo "ERROR: $1" >&2
+    status_line fail tools "$1" >&2
+}
+
+status_line() {
+    local status="$1"
+    local name="$2"
+    local message="$3"
+    local label="$status"
+
+    case "$status" in
+        ok) label=" ok " ;;
+        *) label="$(printf '%-4s' "$status")" ;;
+    esac
+
+    printf '[%s] %-12s %s\n' "$label" "$name" "$message"
 }
 
 if [[ -f "$HOME/.profile" ]]; then
@@ -29,7 +43,7 @@ if [[ "$os" == Linux ]]; then
     if command -v apt-get >/dev/null 2>&1 && can_sudo; then
         apt_enabled=1
     else
-        echo "apt installation disabled: apt-get missing or sudo requires password"
+        status_line skip apt "apt-get missing or sudo requires password"
     fi
 fi
 
@@ -39,12 +53,12 @@ install_brew_pkg() {
     local command_name="${2:-$package}"
 
     if command -v "$command_name" >/dev/null 2>&1; then
-        echo "$package already installed, skipping..."
+        status_line skip "$package" "already installed"
         return 0
     fi
 
     if ! command -v brew >/dev/null 2>&1; then
-        echo "brew not found, cannot install $package, skipping..."
+        status_line skip "$package" "brew not found"
         return 0
     fi
 
@@ -63,7 +77,7 @@ ensure_apt_update() {
     if [[ "$apt_update_done" -eq 0 ]]; then
         apt_update_done=1
         # Repo unreachability is a soft condition (e.g. VPN off): warn, continue.
-        sudo apt-get update || echo "Warning: 'apt-get update' reported errors (continuing)"
+        sudo apt-get update || status_line warn apt "update reported errors, continuing"
     fi
 }
 
@@ -72,19 +86,19 @@ install_apt_pkg() {
     local command_name="${2:-$package}"
 
     if command -v "$command_name" >/dev/null 2>&1; then
-        echo "$package already installed, skipping..."
+        status_line skip "$package" "already installed"
         return 0
     fi
 
     if [[ "$apt_enabled" -ne 1 ]]; then
-        echo "apt installation disabled, skipping apt package: $package"
+        status_line skip "$package" "apt installation disabled"
         return 0
     fi
 
     ensure_apt_update
 
     if ! apt-cache show "$package" >/dev/null 2>&1; then
-        echo "Package '$package' not available in apt, skipping..."
+        status_line skip "$package" "not available in apt"
         return 0
     fi
 
@@ -105,7 +119,7 @@ remove_apt_pkg_if_present() {
     local package="$1"
     [[ "$apt_enabled" -eq 1 ]] || return 0
     dpkg -s "$package" >/dev/null 2>&1 || return 0
-    echo "Removing apt package '$package' (replacing with newer release build)..."
+    status_line run "$package" "removing apt package"
     if ! sudo env DEBIAN_FRONTEND=noninteractive apt-get remove -y "$package"; then
         record_error "apt remove '$package' failed"
     fi
@@ -126,7 +140,7 @@ install_tool() {
             install_apt_pkg "$linux_pkg" "$linux_cmd"
             ;;
         *)
-            echo "Unsupported OS: $os"
+            status_line fail os "unsupported: $os"
             exit 1
             ;;
     esac
@@ -196,7 +210,7 @@ install_tarball_binary() {
     rm -rf "$tmp"
 
     if [[ -x "$HOME/.local/bin/$cmd" ]]; then
-        echo "$cmd installed to ~/.local/bin"
+        status_line ok "$cmd" "installed to ~/.local/bin"
     else
         record_error "$cmd: install verification failed"
     fi
@@ -222,7 +236,7 @@ install_raw_binary() {
     fi
     rm -f "$tmp"
     if [[ -x "$HOME/.local/bin/$cmd" ]]; then
-        echo "$cmd installed to ~/.local/bin"
+        status_line ok "$cmd" "installed to ~/.local/bin"
     else
         record_error "$cmd: install verification failed"
     fi
@@ -236,13 +250,13 @@ install_github_latest_tarball() {
     local repo="$2"
     local asset_tmpl="$3"
     if command -v "$cmd" >/dev/null 2>&1; then
-        echo "$cmd already installed, skipping..."
+        status_line skip "$cmd" "already installed"
         return 0
     fi
     local arch
     arch="$(rust_target_arch)"
     if [[ -z "$arch" ]]; then
-        echo "$cmd: unsupported architecture $(uname -m), skipping..."
+        status_line skip "$cmd" "unsupported architecture $(uname -m)"
         return 0
     fi
     install_tarball_binary "$cmd" \
@@ -267,13 +281,13 @@ install_github_tagged_tool() {
     local repo="$2"
     local libc="$3"
     if command -v "$cmd" >/dev/null 2>&1; then
-        echo "$cmd already installed, skipping..."
+        status_line skip "$cmd" "already installed"
         return 0
     fi
     local arch tag
     arch="$(rust_target_arch)"
     if [[ -z "$arch" ]]; then
-        echo "$cmd: unsupported architecture $(uname -m), skipping..."
+        status_line skip "$cmd" "unsupported architecture $(uname -m)"
         return 0
     fi
     tag="$(github_latest_tag "$repo")"
@@ -301,13 +315,13 @@ install_doggo_linux() {
 # unrelated tool, hence GitHub even on Linux.
 install_yq_linux() {
     if command -v yq >/dev/null 2>&1; then
-        echo "yq already installed, skipping..."
+        status_line skip yq "already installed"
         return 0
     fi
     local arch
     arch="$(go_arch)"
     if [[ -z "$arch" ]]; then
-        echo "yq: unsupported architecture $(uname -m), skipping..."
+        status_line skip yq "unsupported architecture $(uname -m)"
         return 0
     fi
     install_raw_binary "yq" \
@@ -318,7 +332,7 @@ install_yq_linux() {
 # named "jqp" inside. Not packaged in apt.
 install_jqp_linux() {
     if command -v jqp >/dev/null 2>&1; then
-        echo "jqp already installed, skipping..."
+        status_line skip jqp "already installed"
         return 0
     fi
     local arch
@@ -326,7 +340,7 @@ install_jqp_linux() {
         x86_64) arch="x86_64" ;;
         aarch64 | arm64) arch="arm64" ;;
         *)
-            echo "jqp: unsupported architecture $(uname -m), skipping..."
+            status_line skip jqp "unsupported architecture $(uname -m)"
             return 0
             ;;
     esac
@@ -338,13 +352,13 @@ install_jqp_linux() {
 # "gron" inside. Not packaged in apt.
 install_gron_linux() {
     if command -v gron >/dev/null 2>&1; then
-        echo "gron already installed, skipping..."
+        status_line skip gron "already installed"
         return 0
     fi
     local arch tag
     arch="$(go_arch)"
     if [[ -z "$arch" ]]; then
-        echo "gron: unsupported architecture $(uname -m), skipping..."
+        status_line skip gron "unsupported architecture $(uname -m)"
         return 0
     fi
     tag="$(github_latest_tag "tomnomnom/gron")"
@@ -368,7 +382,7 @@ install_zoxide_linux() {
 # binary. Extract the release into a dedicated dir and symlink the binary.
 install_neovim_linux() {
     if command -v nvim >/dev/null 2>&1; then
-        echo "nvim already installed, skipping..."
+        status_line skip nvim "already installed"
         return 0
     fi
     local asset
@@ -376,7 +390,7 @@ install_neovim_linux() {
         x86_64) asset="nvim-linux-x86_64.tar.gz" ;;
         aarch64 | arm64) asset="nvim-linux-arm64.tar.gz" ;;
         *)
-            echo "nvim: unsupported architecture $(uname -m), skipping..."
+            status_line skip nvim "unsupported architecture $(uname -m)"
             return 0
             ;;
     esac
@@ -400,7 +414,7 @@ install_neovim_linux() {
     mkdir -p "$HOME/.local/bin"
     ln -sf "$dest/bin/nvim" "$HOME/.local/bin/nvim"
     if [[ -x "$HOME/.local/bin/nvim" ]]; then
-        echo "nvim installed to $dest (symlinked into ~/.local/bin)"
+        status_line ok nvim "installed to $dest"
     else
         record_error "nvim: install verification failed"
     fi
@@ -411,13 +425,13 @@ install_neovim_linux() {
 # it independent of the host glibc version.
 install_yazi_linux() {
     if command -v yazi >/dev/null 2>&1; then
-        echo "yazi already installed, skipping..."
+        status_line skip yazi "already installed"
         return 0
     fi
     local arch
     arch="$(rust_target_arch)"
     if [[ -z "$arch" ]]; then
-        echo "yazi: unsupported architecture $(uname -m), skipping..."
+        status_line skip yazi "unsupported architecture $(uname -m)"
         return 0
     fi
     if ! command -v unzip >/dev/null 2>&1; then
@@ -451,7 +465,7 @@ install_yazi_linux() {
     done
     rm -rf "$tmp"
     if [[ -x "$HOME/.local/bin/yazi" ]]; then
-        echo "yazi installed to ~/.local/bin"
+        status_line ok yazi "installed to ~/.local/bin"
     else
         record_error "yazi: install verification failed"
     fi
@@ -552,7 +566,7 @@ install_via_curl() {
     local target="${3:-}"
 
     if command -v "$cmd" >/dev/null 2>&1 || { [[ -n "$target" ]] && [[ -x "$target" ]]; }; then
-        echo "$cmd already installed, skipping..."
+        status_line skip "$cmd" "already installed"
         return 0
     fi
     if ! command -v curl >/dev/null 2>&1; then
@@ -579,7 +593,7 @@ install_opencode() {
 
 install_starship() {
     if command -v starship >/dev/null 2>&1; then
-        echo "starship already installed, skipping..."
+        status_line skip starship "already installed"
         return 0
     fi
 
@@ -624,11 +638,11 @@ install_opencode
 
 if [[ ${#FAILED[@]} -gt 0 ]]; then
     echo >&2
-    echo "Installation finished with ${#FAILED[@]} error(s):" >&2
+    status_line fail tools "finished with ${#FAILED[@]} error(s)" >&2
     for e in "${FAILED[@]}"; do
         echo "  - $e" >&2
     done
     exit 1
 fi
 
-echo "All tools processed successfully."
+status_line ok tools "all processed successfully"
