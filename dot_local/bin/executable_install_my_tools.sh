@@ -577,43 +577,6 @@ install_opencode() {
     install_via_curl "opencode" "https://opencode.ai/install" "$HOME/.opencode/bin/opencode"
 }
 
-# --- default login shell -----------------------------------------------------
-
-# Make zsh the login shell. chsh only accepts shells listed in /etc/shells, and
-# editing /etc/passwd needs root, so this requires passwordless sudo; otherwise
-# it prints the manual command and skips (a non-error: the tools still work).
-set_default_shell_zsh() {
-    local zsh_path
-    zsh_path="$(command -v zsh)" || {
-        echo "zsh not found, cannot set default shell, skipping..."
-        return 0
-    }
-
-    local current
-    current="$(getent passwd "$USER" 2>/dev/null | cut -d: -f7)"
-    [[ -z "$current" ]] && current="${SHELL:-}"
-    if [[ "$current" == "$zsh_path" ]]; then
-        echo "default shell already zsh, skipping..."
-        return 0
-    fi
-
-    if ! can_sudo; then
-        echo "cannot set default shell to zsh (sudo needs a password); run manually: chsh -s $zsh_path"
-        return 0
-    fi
-
-    if [[ -r /etc/shells ]] && ! grep -qxF "$zsh_path" /etc/shells; then
-        echo "$zsh_path" | sudo tee -a /etc/shells >/dev/null
-    fi
-
-    if ! sudo chsh -s "$zsh_path" "$USER"; then
-        record_error "failed to set default shell to zsh"
-        return 0
-    fi
-    echo "default shell set to zsh (log out and back in for it to take effect)"
-    return 0
-}
-
 install_starship() {
     if command -v starship >/dev/null 2>&1; then
         echo "starship already installed, skipping..."
@@ -658,8 +621,6 @@ install_jqp
 install_gron
 install_claude_code
 install_opencode
-
-set_default_shell_zsh
 
 if [[ ${#FAILED[@]} -gt 0 ]]; then
     echo >&2
