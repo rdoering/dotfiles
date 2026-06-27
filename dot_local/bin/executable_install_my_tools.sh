@@ -608,7 +608,28 @@ install_starship() {
     return 0
 }
 
+install_tailscale() {
+    local ts_link="$HOME/.local/bin/tailscale"
+
+    # Remove a leftover symlink to the macOS App Store build of Tailscale so
+    # the package-managed binary takes precedence. A real file (not a link)
+    # is left untouched and reported as a warning.
+    if [[ -L "$ts_link" ]]; then
+        status_line run tailscale "removing old symlink at $ts_link"
+        rm -f "$ts_link"
+    elif [[ -e "$ts_link" ]]; then
+        status_line warn tailscale "$ts_link exists but is not a symlink, leaving it in place"
+    fi
+
+    case "$os" in
+        Darwin) install_brew_pkg "tailscale" "tailscale" ;;
+        Linux)  install_apt_pkg "tailscale" "tailscale" ;;
+    esac
+}
+
 install_starship
+
+install_tailscale
 
 install_tool "ripgrep" "rg" "ripgrep" "rg"
 install_tool "zsh" "zsh" "zsh" "zsh"
