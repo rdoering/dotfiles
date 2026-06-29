@@ -35,6 +35,12 @@ compinit
 # Verzeichnisse zuerst anzeigen
 zstyle ':completion:*' list-dirs-first yes
 
+# step CLI (smallstep) completion
+if command -v step >/dev/null 2>&1
+then
+  source <(step completion zsh)
+fi
+
 # Interaktive Auswahl beim Drücken von Tab
 zstyle ':completion:*' menu select
 
