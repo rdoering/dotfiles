@@ -29,6 +29,13 @@ status_line() {
     printf '[%s] %-12s %s\n' "$label" "$name" "$message"
 }
 
+# Output der für die Installation ausgeführten Sub-Commands (apt/brew/curl) um
+# 3 Spaces einrücken, damit er sich unter die linksbündigen status_line-Zeilen
+# schachtelt. set -euo pipefail (oben) erhält den Exit-Code durch die Pipe.
+indent() {
+    sed 's/^/   /'
+}
+
 if [[ -f "$HOME/.profile" ]]; then
     source "$HOME/.profile"
 fi
@@ -62,7 +69,7 @@ install_brew_pkg() {
         return 0
     fi
 
-    if ! NONINTERACTIVE=1 brew install "$package"; then
+    if ! NONINTERACTIVE=1 brew install "$package" 2>&1 | indent; then
         record_error "brew install '$package' failed"
         return 0
     fi
@@ -77,7 +84,7 @@ ensure_apt_update() {
     if [[ "$apt_update_done" -eq 0 ]]; then
         apt_update_done=1
         # Repo unreachability is a soft condition (e.g. VPN off): warn, continue.
-        sudo apt-get update || status_line warn apt "update reported errors, continuing"
+        sudo apt-get update 2>&1 | indent || status_line warn apt "update reported errors, continuing"
     fi
 }
 
@@ -102,7 +109,7 @@ install_apt_pkg() {
         return 0
     fi
 
-    if ! sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$package"; then
+    if ! sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$package" 2>&1 | indent; then
         record_error "apt install '$package' failed"
         return 0
     fi
@@ -120,7 +127,7 @@ remove_apt_pkg_if_present() {
     [[ "$apt_enabled" -eq 1 ]] || return 0
     dpkg -s "$package" >/dev/null 2>&1 || return 0
     status_line run "$package" "removing apt package"
-    if ! sudo env DEBIAN_FRONTEND=noninteractive apt-get remove -y "$package"; then
+    if ! sudo env DEBIAN_FRONTEND=noninteractive apt-get remove -y "$package" 2>&1 | indent; then
         record_error "apt remove '$package' failed"
     fi
 }
@@ -370,6 +377,28 @@ install_gron_linux() {
         "https://github.com/tomnomnom/gron/releases/download/${tag}/gron-linux-${arch}-${tag#v}.tgz"
 }
 
+# step (smallstep CLI, Go) asset: "step_linux_<version>_<arch>.tar.gz"
+# (amd64/arm64), binary at "step_<version>/bin/step" inside. Not packaged in apt.
+install_step_linux() {
+    if command -v step >/dev/null 2>&1; then
+        status_line skip step "already installed"
+        return 0
+    fi
+    local arch tag
+    arch="$(go_arch)"
+    if [[ -z "$arch" ]]; then
+        status_line skip step "unsupported architecture $(uname -m)"
+        return 0
+    fi
+    tag="$(github_latest_tag "smallstep/cli")"
+    if [[ -z "$tag" ]]; then
+        record_error "step: could not determine latest release version"
+        return 0
+    fi
+    install_tarball_binary "step" \
+        "https://github.com/smallstep/cli/releases/download/${tag}/step_linux_${tag#v}_${arch}.tar.gz"
+}
+
 install_just_linux() {
     install_github_tagged_tool "just" "casey/just" "musl"
 }
@@ -528,6 +557,13 @@ install_gron() {
     esac
 }
 
+install_step() {
+    case "$os" in
+        Darwin) install_brew_pkg "step" "step" ;;
+        Linux) install_step_linux ;;
+    esac
+}
+
 install_atuin() {
     case "$os" in
         Darwin) install_brew_pkg "atuin" "atuin" ;;
@@ -573,7 +609,7 @@ install_via_curl() {
         record_error "curl not found, cannot install $cmd"
         return 0
     fi
-    if ! curl -fsSL "$url" | bash; then
+    if ! curl -fsSL "$url" | bash 2>&1 | indent; then
         record_error "$cmd: installer failed ($url)"
         return 0
     fi
@@ -602,7 +638,7 @@ install_starship() {
         return 0
     fi
 
-    if ! curl -sS https://starship.rs/install.sh | sh -s -- --yes; then
+    if ! curl -sS https://starship.rs/install.sh | sh -s -- --yes 2>&1 | indent; then
         record_error "starship install failed"
     fi
     return 0
@@ -654,6 +690,7 @@ install_doggo
 install_yq
 install_jqp
 install_gron
+install_step
 install_claude_code
 install_opencode
 
