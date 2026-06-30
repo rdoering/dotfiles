@@ -399,6 +399,32 @@ install_step_linux() {
         "https://github.com/smallstep/cli/releases/download/${tag}/step_linux_${tag#v}_${arch}.tar.gz"
 }
 
+# helm ships its release tarball at get.helm.sh (not GitHub release assets) as
+# "helm-<tag>-linux-<arch>.tar.gz" (amd64/arm64), with the binary at
+# "linux-<arch>/helm" inside. The latest version is read from
+# get.helm.sh/helm-latest-version (as the official get-helm-3 script does) to
+# avoid the unauthenticated GitHub API rate limit. Not packaged in apt.
+install_helm_linux() {
+    if command -v helm >/dev/null 2>&1; then
+        status_line skip helm "already installed"
+        return 0
+    fi
+    local arch tag
+    arch="$(go_arch)"
+    if [[ -z "$arch" ]]; then
+        status_line skip helm "unsupported architecture $(uname -m)"
+        return 0
+    fi
+    tag="$(curl -fsSL https://get.helm.sh/helm-latest-version 2>/dev/null)"
+    tag="${tag//[$'\r\n']/}"
+    if [[ -z "$tag" ]]; then
+        record_error "helm: could not determine latest release version"
+        return 0
+    fi
+    install_tarball_binary "helm" \
+        "https://get.helm.sh/helm-${tag}-linux-${arch}.tar.gz"
+}
+
 install_just_linux() {
     install_github_tagged_tool "just" "casey/just" "musl"
 }
@@ -564,6 +590,13 @@ install_step() {
     esac
 }
 
+install_helm() {
+    case "$os" in
+        Darwin) install_brew_pkg "helm" "helm" ;;
+        Linux) install_helm_linux ;;
+    esac
+}
+
 install_atuin() {
     case "$os" in
         Darwin) install_brew_pkg "atuin" "atuin" ;;
@@ -691,6 +724,7 @@ install_yq
 install_jqp
 install_gron
 install_step
+install_helm
 install_claude_code
 install_opencode
 
