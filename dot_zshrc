@@ -151,6 +151,11 @@ then
   source <(k3d completion zsh)
 fi
 
+if command -v helm >/dev/null 2>&1
+then
+  source <(helm completion zsh)
+fi
+
 if command -v gh  >/dev/null 2>&1
 then
   eval "$(gh completion --shell zsh)"
