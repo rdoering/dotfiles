@@ -678,21 +678,59 @@ install_starship() {
 }
 
 install_tailscale() {
-    local ts_link="$HOME/.local/bin/tailscale"
+    local xdg_bin_dir="${XDG_BIN_DIR:-$HOME/.local/bin}"
+    local ts_link="$xdg_bin_dir/tailscale"
 
-    # Remove a leftover symlink to the macOS App Store build of Tailscale so
-    # the package-managed binary takes precedence. A real file (not a link)
-    # is left untouched and reported as a warning.
-    if [[ -L "$ts_link" ]]; then
-        status_line run tailscale "removing old symlink at $ts_link"
-        rm -f "$ts_link"
-    elif [[ -e "$ts_link" ]]; then
-        status_line warn tailscale "$ts_link exists but is not a symlink, leaving it in place"
-    fi
+    # The macOS standalone Tailscale.app resolves its bundle context from
+    # argv[0]; a symlink outside the .app bundle breaks that lookup and
+    # crashes with "bundleIdentifier is unknown to the registry". A small
+    # wrapper script that execs the real binary avoids this.
+    write_wrapper() {
+        local target="$1"
+        if [[ -L "$ts_link" || -f "$ts_link" ]]; then
+            status_line run tailscale "removing old entry at $ts_link"
+            rm -f "$ts_link"
+        elif [[ -e "$ts_link" ]] && [[ ! -L "$ts_link" && ! -f "$ts_link" ]]; then
+            status_line warn tailscale "$ts_link exists and is not a regular file, leaving it in place"
+            return 1
+        fi
+        mkdir -p "$xdg_bin_dir"
+        cat > "$ts_link" <<EOF
+#!/bin/sh
+exec "$target" "\$@"
+EOF
+        chmod +x "$ts_link"
+        status_line ok tailscale "wrapper $ts_link -> $target"
+        return 0
+    }
 
     case "$os" in
-        Darwin) install_brew_pkg "tailscale" "tailscale" ;;
-        Linux)  install_apt_pkg "tailscale" "tailscale" ;;
+        Darwin)
+            local gui_bin="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+            local mas_receipt="/Applications/Tailscale.app/Contents/_MASReceipt"
+            # macOS has two Tailscale variants: the standalone build from
+            # tailscale.com (CLI-capable, no _MASReceipt) and the Mac App
+            # Store build (sandboxed, CLI unusable). Both ship their own
+            # tailscaled daemon, so a brew-installed tailscale alongside
+            # either GUI app causes a version mismatch and a conflicting
+            # daemon.
+            if [[ -x "$gui_bin" ]] && [[ ! -d "$mas_receipt" ]]; then
+                if brew list tailscale >/dev/null 2>&1; then
+                    status_line run tailscale "removing brew tailscale to avoid daemon conflict with standalone app"
+                    brew uninstall tailscale >/dev/null 2>&1 || \
+                        status_line warn tailscale "brew uninstall failed, please remove manually"
+                fi
+                write_wrapper "$gui_bin" && return 0
+            elif [[ -x "$gui_bin" ]]; then
+                status_line warn tailscale "App Store build present (sandboxed, CLI unusable); brew skipped to avoid daemon conflict"
+                status_line warn tailscale "uninstall the App Store app or install the standalone build from tailscale.com"
+                return 0
+            fi
+            install_brew_pkg "tailscale" "tailscale"
+            ;;
+        Linux)
+            install_apt_pkg "tailscale" "tailscale"
+            ;;
     esac
 }
 
