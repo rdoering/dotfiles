@@ -746,6 +746,7 @@ install_tool "unzip" "unzip" "unzip" "unzip"
 install_tool "rclone" "rclone" "rclone" "rclone"
 install_tool "restic" "restic" "restic" "restic"
 install_tool "sysbench" "sysbench" "sysbench" "sysbench"
+install_tool "btop" "btop" "btop" "btop"
 install_tool "gh" "gh" "gh" "gh"
 install_yazi
 install_delta
