@@ -699,7 +699,17 @@ install_claude_code() {
 }
 
 install_opencode() {
+    # The opencode installer hardcodes INSTALL_DIR=$HOME/.opencode/bin and has no
+    # override, so we install there and then symlink into XDG_BIN_DIR (on PATH).
     install_via_curl "opencode" "https://opencode.ai/install" "$HOME/.opencode/bin/opencode"
+
+    local bin_dir="${XDG_BIN_DIR:-$HOME/.local/bin}"
+    local src="$HOME/.opencode/bin/opencode"
+    if [[ -x "$src" ]]; then
+        mkdir -p "$bin_dir"
+        ln -sf "$src" "$bin_dir/opencode"
+        status_line ok opencode "linked into $bin_dir"
+    fi
 }
 
 install_starship() {
