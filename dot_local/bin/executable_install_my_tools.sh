@@ -425,6 +425,27 @@ install_helm_linux() {
         "https://get.helm.sh/helm-${tag}-linux-${arch}.tar.gz"
 }
 
+# globalping (jsdelivr network measurement CLI, Go) asset:
+# "globalping_Linux_<arch>.tar.gz" (x86_64/arm64), binary named "globalping"
+# inside. Not packaged in apt; on macOS it lives in the jsdelivr/globalping tap.
+install_globalping_linux() {
+    if command -v globalping >/dev/null 2>&1; then
+        status_line skip globalping "already installed"
+        return 0
+    fi
+    local arch
+    case "$(uname -m)" in
+        x86_64) arch="x86_64" ;;
+        aarch64 | arm64) arch="arm64" ;;
+        *)
+            status_line skip globalping "unsupported architecture $(uname -m)"
+            return 0
+            ;;
+    esac
+    install_tarball_binary "globalping" \
+        "https://github.com/jsdelivr/globalping-cli/releases/latest/download/globalping_Linux_${arch}.tar.gz"
+}
+
 install_just_linux() {
     install_github_tagged_tool "just" "casey/just" "musl"
 }
@@ -597,6 +618,27 @@ install_helm() {
     esac
 }
 
+install_globalping() {
+    case "$os" in
+        Darwin)
+            if command -v globalping >/dev/null 2>&1; then
+                status_line skip globalping "already installed"
+                return 0
+            fi
+            if ! command -v brew >/dev/null 2>&1; then
+                status_line skip globalping "brew not found"
+                return 0
+            fi
+            if ! brew tap jsdelivr/globalping 2>&1 | indent; then
+                record_error "brew tap 'jsdelivr/globalping' failed"
+                return 0
+            fi
+            install_brew_pkg "globalping" "globalping"
+            ;;
+        Linux) install_globalping_linux ;;
+    esac
+}
+
 install_atuin() {
     case "$os" in
         Darwin) install_brew_pkg "atuin" "atuin" ;;
@@ -764,6 +806,7 @@ install_jqp
 install_gron
 install_step
 install_helm
+install_globalping
 install_claude_code
 install_opencode
 

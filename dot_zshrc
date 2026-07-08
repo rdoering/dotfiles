@@ -167,6 +167,11 @@ then
   eval "$(just --completions zsh)"
 fi
 
+if command -v globalping >/dev/null 2>&1
+then
+  source <(globalping completion zsh)
+fi
+
 if command -v rg >/dev/null 2>&1; then
   _rg() {
     eval "$(rg --generate=complete-zsh | sed '1s/^/#compdef _rg rg\n/')"
