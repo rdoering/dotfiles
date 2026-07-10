@@ -215,7 +215,12 @@ export NVM_DIR="$HOME/.config/nvm"
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
-if [[ -z "$TMUX" && "$TERM_PROGRAM" == "kitty" ]]
+if [[ -z "$TMUX" && -z "$HERDR_ENV" && "$TERM_PROGRAM" == "kitty" ]]
 then
-  tmux attach || tmux
+  if command -v herdr >/dev/null 2>&1
+  then
+    herdr
+  else
+    tmux attach || tmux
+  fi
 fi

@@ -269,3 +269,6 @@ strategy = "fixed"
 
 [ui]
 duration = false
+
+[ai]
+enabled = true
