@@ -446,6 +446,24 @@ install_globalping_linux() {
         "https://github.com/jsdelivr/globalping-cli/releases/latest/download/globalping_Linux_${arch}.tar.gz"
 }
 
+# herdr (agent multiplexer, Rust) ships raw per-arch binaries named
+# "herdr-linux-<arch>" (x86_64/aarch64, matching rust_target_arch), so download
+# the raw binary directly. Not packaged in apt; on macOS it lives in homebrew/core.
+install_herdr_linux() {
+    if command -v herdr >/dev/null 2>&1; then
+        status_line skip herdr "already installed"
+        return 0
+    fi
+    local arch
+    arch="$(rust_target_arch)"
+    if [[ -z "$arch" ]]; then
+        status_line skip herdr "unsupported architecture $(uname -m)"
+        return 0
+    fi
+    install_raw_binary "herdr" \
+        "https://github.com/ogulcancelik/herdr/releases/latest/download/herdr-linux-${arch}"
+}
+
 install_just_linux() {
     install_github_tagged_tool "just" "casey/just" "musl"
 }
@@ -646,6 +664,13 @@ install_atuin() {
     esac
 }
 
+install_herdr() {
+    case "$os" in
+        Darwin) install_brew_pkg "herdr" "herdr" ;;
+        Linux) install_herdr_linux ;;
+    esac
+}
+
 install_zoxide() {
     case "$os" in
         Darwin) install_brew_pkg "zoxide" "zoxide" ;;
@@ -817,6 +842,7 @@ install_gron
 install_step
 install_helm
 install_globalping
+install_herdr
 install_claude_code
 install_opencode
 
