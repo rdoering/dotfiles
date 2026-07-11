@@ -1,8 +1,14 @@
+# Falls git doch mal blockiert: Prompt wartet max. 200ms auf externe Kommandos.
+# (Root-Option — muss vor der ersten [sektion] stehen.)
+command_timeout = 200
+
 # git_status deaktiviert: auf dem 9p-Filesystem (/mnt/c, WSL2) ist der
 # Dirty-/Ahead-Behind-Check pro Prompt-Render sehr langsam (~260ms warm, bis
 # ~3,7s cold). Branch bleibt via git_branch sichtbar.
 [git_status]
 disabled = true
 
-# Falls git doch mal blockiert: Prompt wartet max. 200ms auf externe Kommandos.
-command_timeout = 200
+# Bun-Modul deaktiviert: zeigt sonst "via 🥟" in Verzeichnissen mit bun.lock
+# (z.B. ~/.config/opencode).
+[bun]
+disabled = true
