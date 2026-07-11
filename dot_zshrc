@@ -26,20 +26,45 @@ then
   export SSL_CERT_DIR=/etc/ssl/certs
 fi
 
+# Caches completion/init scripts of external tools, keyed by binary mtime.
+# Re-runs the tool only when the binary is updated, otherwise the cached
+# script is sourced directly. Uses the zsh stat builtin (no subprocess fork).
+zmodload zsh/stat 2>/dev/null
+_zsh_cache() {
+  local name="$1" gen_cmd="$2"
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
+  local tool="${gen_cmd%% *}"
+  local bin
+  bin=$(command -v "$tool" 2>/dev/null)
+  [[ -z "$bin" ]] && return
+  local ver
+  stat -A ver +mtime "$bin" 2>/dev/null || ver="0"
+  [[ -z "$ver" || "$ver" == "0" ]] && ver="noversion"
+  local cache_file="$cache_dir/${name}_${ver}.zsh"
+  if [[ ! -s "$cache_file" ]]; then
+    mkdir -p "$cache_dir"
+    command ${=gen_cmd} > "$cache_file" 2>/dev/null
+    for f in "$cache_dir"/${name}_*.zsh(N); do
+      [[ "$f" != "$cache_file" ]] && rm -f -- "$f"
+    done
+  fi
+  [[ -s "$cache_file" ]] && source "$cache_file"
+}
+
 # Reevaluate the prompt string each time it's displaying a prompt
 #setopt prompt_subst
 #zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
 #autoload bashcompinit && bashcompinit
 autoload -Uz compinit
-compinit
+# refresh completion dump only once per day, otherwise load cached dump (-C);
+# -i skips the insecure-directory audit (compaudit) for faster startup.
+if [[ -n ~/.zcompdump(#qN.mh+24) ]]; then
+  compinit -i
+else
+  compinit -C -i
+fi
 # Verzeichnisse zuerst anzeigen
 zstyle ':completion:*' list-dirs-first yes
-
-# step CLI (smallstep) completion
-if command -v step >/dev/null 2>&1
-then
-  source <(step completion zsh)
-fi
 
 # Interaktive Auswahl beim Drücken von Tab
 zstyle ':completion:*' menu select
@@ -94,24 +119,30 @@ if [ -d "$HOME/.cargo/bin" ] && [[ ":$PATH:" != *":$HOME/.cargo/bin:"* ]]; then
     export PATH
 fi
 
+# step CLI (smallstep) completion
+if command -v step >/dev/null 2>&1
+then
+  _zsh_cache step "step completion zsh"
+fi
+
 # prompt
 if command -v starship >/dev/null 2>&1
 then
-  eval "$(starship init zsh)"
+  _zsh_cache starship "starship init zsh"
   export STARSHIP_CONFIG=~/.config/starship/starship.toml
 fi
 
 # xozide als cd replacement
 if command -v zoxide >/dev/null 2>&1
 then
-  eval "$(zoxide init zsh)"
+  _zsh_cache zoxide "zoxide init zsh"
   alias cd="z"
 fi
 
 # dot file management
 if command -v chezmoi >/dev/null 2>&1
 then
-  eval "$(chezmoi completion zsh)"
+  _zsh_cache chezmoi "chezmoi completion zsh"
 fi
 
 # yazi - terminal file browser
@@ -130,14 +161,14 @@ fi
 # atuin - terminal history
 if command -v atuin >/dev/null 2>&1
 then
-  eval "$(atuin init zsh --disable-up-arrow)"
-  eval "$(atuin gen-completions --shell zsh)"
+  _zsh_cache atuin "atuin init zsh --disable-up-arrow"
+  _zsh_cache atuin-completions "atuin gen-completions --shell zsh"
 fi
 
 # kubectl - K8s management
 if command -v kubectl >/dev/null 2>&1 && test -d ~/.kube/
 then
-  source <(kubectl completion zsh)
+  _zsh_cache kubectl "kubectl completion zsh"
   kubeconfigs=(~/.kube/config(N) ~/.kube/*.y*ml(N))
   if (( ${#kubeconfigs[@]} > 0 )); then
     export KUBECONFIG="${(j.:.)kubeconfigs}"
@@ -148,28 +179,28 @@ fi
 
 if command -v k3d >/dev/null 2>&1
 then
-  source <(k3d completion zsh)
+  _zsh_cache k3d "k3d completion zsh"
 fi
 
 if command -v helm >/dev/null 2>&1
 then
-  source <(helm completion zsh)
+  _zsh_cache helm "helm completion zsh"
 fi
 
 if command -v gh  >/dev/null 2>&1
 then
-  eval "$(gh completion --shell zsh)"
+  _zsh_cache gh "gh completion --shell zsh"
 fi
 
 
 if command -v just  >/dev/null 2>&1
 then
-  eval "$(just --completions zsh)"
+  _zsh_cache just "just --completions zsh"
 fi
 
 if command -v globalping >/dev/null 2>&1
 then
-  source <(globalping completion zsh)
+  _zsh_cache globalping "globalping completion zsh"
 fi
 
 if command -v rg >/dev/null 2>&1; then
@@ -197,9 +228,9 @@ fi
 # OpenCode - AI-powered code editor
 if command -v opencode >/dev/null 2>&1
 then
-  export PATH=/home/qtc340/.opencode/bin:$PATH
+  export PATH="$HOME/.opencode/bin:$PATH"
   alias oc="opencode"
-  eval "$(opencode completion)"
+  _zsh_cache opencode "opencode completion"
   compdef _opencode_yargs_completions oc
 fi
 
@@ -209,7 +240,7 @@ export NVM_DIR="$HOME/.config/nvm"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 # bun completions
-[ -s "/home/qtc340/.bun/_bun" ] && source "/home/qtc340/.bun/_bun"
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 
 # bun
 export BUN_INSTALL="$HOME/.bun"
