@@ -217,10 +217,7 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 
 if [[ -z "$TMUX" && -z "$HERDR_ENV" ]] && [[ -o interactive ]]
 then
-  if command -v herdr >/dev/null 2>&1
-  then
-    herdr
-  elif [[ "$TERM_PROGRAM" == "kitty" ]]
+  if [[ "$TERM_PROGRAM" == "kitty" ]]
   then
     tmux attach || tmux
   fi
