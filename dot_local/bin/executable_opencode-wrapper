@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+"""opencode wrapper: forces tmux to re-query Kitty's background color via DCS
+passthrough before launching opencode.
+
+Problem: tmux intercepts OSC 11 from applications and responds with a stale
+cached value (tty->bg). The cache is only refreshed at startup, every 30s,
+on window resize, or on theme notification (which Kitty doesn't support).
+
+Fix: send OSC 11 via DCS passthrough. tmux forwards the inner query to Kitty,
+Kitty responds with the current bg color, and tmux consumes the response -
+updating tty->bg. Then opencode's own OSC 11 query gets the fresh value.
+
+The double ESC (\\e\\e) inside DCS is required because tmux's DCS parser
+treats single ESC as a state transition.
+"""
+
+import os
+import sys
+import time
+
+OPENCODE_BIN = os.path.expanduser("~/bin/opencode")
+
+if os.environ.get("TMUX"):
+    sys.stdout.buffer.write(b"\x1bPtmux;\x1b\x1b]11;?\x07\x1b\\")
+    sys.stdout.buffer.flush()
+    time.sleep(0.3)
+
+os.execvp(OPENCODE_BIN, [OPENCODE_BIN] + sys.argv[1:])

@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+#
+# terminal-tests — führt die kitty/tmux/ssh-Tastatur-Regressionstests mit der
+# gebündelten bats-Instanz aus (keine System-Installation nötig).
+#
+# Beide liegen zusammen unter ~/.config/terminal-tests:
+#   keybindings.bats   die Testfälle
+#   helpers.bash       Plumbing
+#   bats/              via chezmoi gepinnte bats-Instanz (.chezmoiexternal.toml)
+#
+# Aufruf:
+#   terminal-tests                 alle Tests
+#   terminal-tests --filter '^A:'  nur die statischen Vertrags-Tests
+#   SETTLE=1.5 terminal-tests      mehr Puffer bei langsamer SSH-Verbindung
+# Weitere Argumente werden an bats durchgereicht.
+set -euo pipefail
+
+DIR="${XDG_CONFIG_HOME:-$HOME/.config}/terminal-tests"
+BATS="$DIR/bats/bin/bats"
+
+if [[ ! -x "$BATS" ]]; then
+    echo "terminal-tests: gebündelte bats-Instanz fehlt unter $BATS" >&2
+    echo "                'chezmoi apply' ausführen, um sie zu holen." >&2
+    exit 1
+fi
+
+exec "$BATS" "$DIR/keybindings.bats" "$@"

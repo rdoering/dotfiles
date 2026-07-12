@@ -1,0 +1,13 @@
+# chezmoi-Externals: Ressourcen, die beim `chezmoi apply` heruntergeladen statt
+# im Repo eingecheckt werden.
+#
+# Gebündelte bats-Instanz für die Terminal-Tastatur-Tests. Landet als
+# eigenständiger, versions-gepinnter Baum direkt neben den Tests, sodass die
+# Suite ohne System-Installation (brew/apt) lauffähig ist. bats-core ist reines
+# Bash — kein Build nötig; `bats/bin/bats` ist sofort ausführbar.
+[".config/terminal-tests/bats"]
+    type = "archive"
+    url = "https://github.com/bats-core/bats-core/archive/refs/tags/v1.11.1.tar.gz"
+    exact = true
+    stripComponents = 1
+    refreshPeriod = "720h"
