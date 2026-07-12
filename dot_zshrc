@@ -229,14 +229,10 @@ fi
 if command -v opencode >/dev/null 2>&1
 then
   export PATH="$HOME/.opencode/bin:$PATH"
+  alias oc="opencode"
   _zsh_cache opencode "opencode completion"
   compdef _opencode_yargs_completions oc
 fi
-
-# OpenCode theme wrapper: picks catppuccin-latte/frappe from macOS appearance.
-# tmux intercepts OSC 11, so opencode cannot detect the terminal background.
-alias opencode="opencode-wrapper"
-alias oc="opencode"
 
 
 export NVM_DIR="$HOME/.config/nvm"
