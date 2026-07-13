@@ -88,6 +88,23 @@ ensure_apt_update() {
     fi
 }
 
+install_apt_build_dep() {
+    local package="$1"
+    if dpkg -s "$package" >/dev/null 2>&1; then
+        return 0
+    fi
+    if [[ "$apt_enabled" -ne 1 ]]; then
+        record_error "tmux build dependency '$package' missing and apt installation disabled"
+        return 1
+    fi
+    ensure_apt_update
+    if ! sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$package" 2>&1 | indent; then
+        record_error "apt install '$package' failed (tmux build dependency)"
+        return 1
+    fi
+    return 0
+}
+
 install_apt_pkg() {
     local package="$1"
     local command_name="${2:-$package}"
@@ -573,6 +590,111 @@ install_eza() {
     esac
 }
 
+# tmux.conf relies on "extended-keys"/CSI-u passthrough (Shift+Enter etc. from
+# kitty), which needs tmux >= 3.5. Debian/Ubuntu packages are routinely older
+# than that, so fall back to building upstream from source when apt can't
+# satisfy the minimum.
+TMUX_MIN_VERSION="3.5"
+
+tmux_installed_version() {
+    command -v tmux >/dev/null 2>&1 || return 1
+    tmux -V 2>/dev/null | sed -E 's/^tmux[[:space:]]+//'
+}
+
+# True if version $1 >= $2 (dotted versions, e.g. "3.3a" vs "3.5").
+version_ge() {
+    [[ "$1" == "$2" ]] && return 0
+    [[ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -n1)" == "$1" ]]
+}
+
+install_tmux_from_source() {
+    local version="$1"
+    local dep
+    for dep in libevent-dev libncurses-dev pkg-config bison gcc make; do
+        install_apt_build_dep "$dep" || return 0
+    done
+
+    local url="https://github.com/tmux/tmux/releases/download/${version}/tmux-${version}.tar.gz"
+    local tmp dest
+    tmp="$(mktemp -d)"
+    if ! curl -fsSL "$url" -o "$tmp/tmux.tar.gz"; then
+        record_error "tmux: download failed ($url)"
+        rm -rf "$tmp"
+        return 0
+    fi
+    if ! tar -xzf "$tmp/tmux.tar.gz" -C "$tmp"; then
+        record_error "tmux: extraction failed"
+        rm -rf "$tmp"
+        return 0
+    fi
+
+    dest="$HOME/.local/opt/tmux-${version}"
+    rm -rf "$dest"
+    if ! (
+        cd "$tmp/tmux-${version}" &&
+        ./configure --prefix="$dest" &&
+        make -j"$(nproc)" &&
+        make install
+    ) 2>&1 | indent; then
+        record_error "tmux: build from source failed"
+        rm -rf "$tmp"
+        return 0
+    fi
+    rm -rf "$tmp"
+
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$dest/bin/tmux" "$HOME/.local/bin/tmux"
+    if [[ -x "$HOME/.local/bin/tmux" ]]; then
+        status_line ok tmux "built ${version} from source, installed to $dest"
+    else
+        record_error "tmux: install verification failed"
+    fi
+}
+
+install_tmux_linux() {
+    local have
+    have="$(tmux_installed_version)" || have=""
+    if [[ -n "$have" ]] && version_ge "$have" "$TMUX_MIN_VERSION"; then
+        status_line skip tmux "already installed ($have)"
+        return 0
+    fi
+
+    if [[ "$apt_enabled" -eq 1 ]]; then
+        ensure_apt_update
+        local candidate
+        candidate="$(apt-cache policy tmux 2>/dev/null | awk '/Candidate:/{print $2}')"
+        candidate="${candidate%%[-+]*}"
+        if [[ -n "$candidate" && "$candidate" != "(none)" ]] && version_ge "$candidate" "$TMUX_MIN_VERSION"; then
+            if ! sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tmux 2>&1 | indent; then
+                record_error "apt install 'tmux' failed"
+                return 0
+            fi
+            status_line ok tmux "installed via apt ($candidate)"
+            return 0
+        fi
+    fi
+
+    local tag
+    tag="$(github_latest_tag "tmux/tmux")"
+    if [[ -z "$tag" ]]; then
+        tag="$TMUX_MIN_VERSION"
+    fi
+    install_tmux_from_source "$tag"
+}
+
+install_tmux() {
+    case "$os" in
+        Darwin) install_brew_pkg "tmux" "tmux" ;;
+        Linux) install_tmux_linux ;;
+    esac
+
+    local have
+    have="$(tmux_installed_version)" || have=""
+    if [[ -n "$have" ]] && ! version_ge "$have" "$TMUX_MIN_VERSION"; then
+        record_error "tmux: installed version $have is older than required $TMUX_MIN_VERSION (extended-keys needs it)"
+    fi
+}
+
 install_yazi() {
     case "$os" in
         Darwin) install_brew_pkg "yazi" "yazi" ;;
@@ -818,7 +940,7 @@ install_tailscale
 install_tool "ripgrep" "rg" "ripgrep" "rg"
 install_tool "zsh" "zsh" "zsh" "zsh"
 install_tool "fzf" "fzf" "fzf" "fzf"
-install_tool "tmux" "tmux" "tmux" "tmux"
+install_tmux
 install_tool "unzip" "unzip" "unzip" "unzip"
 install_tool "rclone" "rclone" "rclone" "rclone"
 install_tool "restic" "restic" "restic" "restic"
