@@ -119,6 +119,13 @@ if [ -d "$HOME/.cargo/bin" ] && [[ ":$PATH:" != *":$HOME/.cargo/bin:"* ]]; then
     export PATH
 fi
 
+# mise — manages dev tools declared in ~/.config/mise/config.toml.
+# Must come after PATH setup so mise-managed binaries are found first.
+if command -v mise >/dev/null 2>&1
+then
+  eval "$(mise activate zsh)"
+fi
+
 # step CLI (smallstep) completion
 if command -v step >/dev/null 2>&1
 then

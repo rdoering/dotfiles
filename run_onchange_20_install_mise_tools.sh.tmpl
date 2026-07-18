@@ -1,0 +1,45 @@
+#!/bin/bash
+# .config/mise/config.toml hash: {{ include "private_dot_config/mise/config.toml" | sha256sum }}
+set -euo pipefail
+
+status_line() {
+    local status="$1"
+    local name="$2"
+    local message="$3"
+    local label="$status"
+    case "$status" in
+        ok) label=" ok " ;;
+        *) label="$(printf '%-4s' "$status")" ;;
+    esac
+    printf '[%s] %-12s %s\n' "$label" "$name" "$message"
+}
+
+indent() {
+    sed 's/^/   /'
+}
+
+# Source ~/.profile so mise (in ~/.local/bin) is on PATH if already installed.
+[[ -f "$HOME/.profile" ]] && source "$HOME/.profile"
+
+MISE_BIN="$HOME/.local/bin/mise"
+
+if [[ -x "$MISE_BIN" ]]; then
+    status_line skip mise "already installed"
+else
+    if command -v curl >/dev/null 2>&1; then
+        if curl -fsSL https://mise.run | sh 2>&1 | indent; then
+            status_line ok mise "installed via mise.run"
+        else
+            status_line fail mise "installation via mise.run failed"
+            exit 1
+        fi
+    else
+        status_line fail mise "curl not found, cannot bootstrap mise"
+        exit 1
+    fi
+fi
+
+# Use absolute path: a freshly installed mise is not yet in the current
+# shell's PATH (only future shells pick it up via ~/.profile).
+"$MISE_BIN" install 2>&1 | indent
+status_line ok mise-tools "installed"

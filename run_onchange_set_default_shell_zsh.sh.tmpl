@@ -27,10 +27,18 @@ can_sudo() {
     sudo -n true >/dev/null 2>&1
 }
 
-zsh_path="$(command -v zsh 2>/dev/null)" || {
-    status_line skip shell "zsh not found"
-    exit 0
-}
+# Prefer /bin/zsh on macOS — it is a Universal binary that runs arm64
+# natively on Apple Silicon, avoiding Rosetta emulation. A brew zsh
+# (/usr/local/bin/zsh on Intel, /opt/homebrew/bin/zsh on arm64) would also
+# work but ties the login shell to brew. /bin/zsh is always present.
+if [[ "$(uname -s)" == Darwin && -x /bin/zsh ]]; then
+    zsh_path="/bin/zsh"
+else
+    zsh_path="$(command -v zsh 2>/dev/null)" || {
+        status_line skip shell "zsh not found"
+        exit 0
+    }
+fi
 
 if [[ "$(uname -s)" == Darwin ]]; then
     current="$(dscl . -read "/Users/$USER" UserShell 2>/dev/null | awk '{print $2}')"

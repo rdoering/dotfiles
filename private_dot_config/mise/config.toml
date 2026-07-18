@@ -1,0 +1,47 @@
+# Global mise config — managed by chezmoi.
+# All dev tools are pinned to "latest"; run `mise upgrade --all` to refresh.
+# System-level tools (tailscale, zsh, unzip, p7zip, sysbench, globalping)
+# remain in ~/.local/bin/install_my_tools.sh since they need brew/apt.
+#
+# Note: this config targets macOS arm64 (Apple Silicon native). The aqua
+# backend ships darwin/arm64 binaries for most tools. Two exceptions stay
+# Linux-only in mise and fall back to brew on macOS:
+#   - btop: upstream ships Linux-only release tarballs
+#   - eza:  the asdf plugin is hardcoded to x86_64-apple-darwin
+# On Intel Macs (Rosetta) additionally atuin, delta, fd would fail — those
+# Macs need brew fallback for 5 tools total (see install_my_tools.sh).
+
+[tools]
+starship   = "latest"
+ripgrep    = "latest"
+fzf        = "latest"
+tmux       = "latest"
+rclone     = "latest"
+restic     = "latest"
+github-cli = "latest"
+yazi       = "latest"
+delta      = "latest"
+zoxide     = "latest"
+atuin      = "latest"
+fd         = "latest"
+marksman   = "latest"
+neovim     = "latest"
+just       = "latest"
+doggo      = "latest"
+yq         = "latest"
+jqp        = "latest"
+gron       = "latest"
+step       = "latest"
+helm       = "latest"
+herdr      = "latest"
+claude     = "latest"
+opencode   = "latest"
+
+# Linux-only via mise; on macOS these are installed via brew in
+# install_my_tools.sh (btop: no macOS release assets; eza: asdf plugin bug).
+btop = { version = "latest", os = ["linux"] }
+eza  = { version = "latest", os = ["linux"] }
+
+[settings]
+auto_install           = true
+not_found_auto_install = true
