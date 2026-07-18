@@ -36,6 +36,7 @@ helm       = "latest"
 herdr      = "latest"
 claude     = "latest"
 opencode   = "latest"
+aws-cli    = "latest"
 
 # Linux-only via mise; on macOS these are installed via brew in
 # install_my_tools.sh (btop: no macOS release assets; eza: asdf plugin bug).

@@ -50,8 +50,14 @@ teardown() {
   assert_line "$KITTY_CONF" '^allow_remote_control[[:space:]]+yes'
 }
 
-@test "A: tmux hat extended-keys=off (sonst CSI-u-Bytes, die tmux verschluckt)" {
-  assert_line "$TMUX_CONF" '^set[[:space:]]+-s[[:space:]]+extended-keys[[:space:]]+off'
+@test "A: tmux aktiviert extended-keys als CSI-u (modifizierte Tasten in Apps)" {
+  # Gewollter Zustand: extended-keys on + csi-u. Damit reicht tmux der inneren
+  # App (auf Anforderung) das CSI-u-Keyboard-Protokoll durch, sodass
+  # modifizierte Tasten wie Ctrl/Shift+Pfeile erkannt werden. Shift+Enter als
+  # CSI-u funktioniert hiervon UNABHAENGIG via kitty-map (siehe Test oben).
+  assert_line "$TMUX_CONF" '^set[[:space:]]+-s[[:space:]]+extended-keys[[:space:]]+on'
+  assert_line "$TMUX_CONF" '^set[[:space:]]+-s[[:space:]]+extended-keys-format[[:space:]]+csi-u'
+  assert_line "$TMUX_CONF" '^set[[:space:]]+-as[[:space:]]+terminal-features[[:space:]].*xterm\*:extkeys'
 }
 
 @test "A: tmux erlaubt Passthrough (OSC an das aeussere kitty)" {
@@ -99,4 +105,52 @@ teardown() {
     printf 'visible line: [%s]\n' "$output" >&2
     false
   }
+}
+
+@test "B: Escape verlaesst Insert-Modus in vi ueber ssh zu s1.local (voller Stack)" {
+  # Regressionstest fuer den stillen Bug: in vi auf s1.local liess sich der
+  # Insert-Modus nicht verlassen, weil Escape nicht als solches ankam (CSI-u-
+  # Codierung durch extended-keys). Der Test injiziert rohe \x1b-Bytes durch
+  # den kompletten Stack kitty -> tmux -> ssh -> vi und prueft SICHTBAR, dass
+  # vi in den Normalmodus zurueckkehrt: nur dann beendet :q! den Editor und
+  # der Shell-Prompt wird wieder sichtbar. Bleibt vi im Insert-Modus, wird
+  # ":q!" als Text in den Puffer getippt und der Editor bleibt offen -> FAIL.
+  #
+  # Verbindlich (ROT, nicht skip): fehlt s1.local, ist der Test wertlos —
+  # genau dann schweigt die Regression wieder. Daher require_ssh_host_mandatory
+  # statt require_ssh_host.
+  require_live
+  require_ssh_host_mandatory s1.local
+  _new_window viEsc 'ssh s1.local'
+  _wait_for viEsc 'robert@s1' 12 || skip "remote prompt did not appear in time"
+  # vi mit leerem Puffer starten; auf den Leerzeilen-Marker ~ warten
+  # (erscheint bei vi/vim/nvi in der linken Spalte fuer nicht-existente Zeilen)
+  prev="$(tmux display-message -p '#{window_id}')"
+  tmux select-window -t viEsc
+  sleep 0.3
+  printf '%b' 'vi\n' | kitty @ --to "$KITTY_SOCK" send-text --match "id:$KITTY_WIN" --stdin
+  _wait_for viEsc '^~' 8 || {
+    tmux select-window -t "$prev" 2>/dev/null || true
+    skip "vi did not open (no ~ marker) in time"
+  }
+  # i = Insert-Modus, "abc" tippen, ESC (\x1b), :q! beendet vi nur im Normalmodus.
+  # WICHTIG: ESC und die Folgetasten MUSS zeitlich getrennt werden (sleep >
+  # escape-time). tmux' escape-time (10 ms) fasst \x1b + sofort folgende Bytes
+  # als potenzielle Control-Sequenz auf und liefert kein nacktes ESC aus.
+  # send-text schreibt den gesamten String in einem Burst — ohne Pause wuerde
+  # der Test die Burst-Pathologie messen, nicht die echte Regression. Bei
+  # echtem Tippen liegt zwischen ESC und :q! eine menschliche Pause.
+  printf '%b' 'iabc' | kitty @ --to "$KITTY_SOCK" send-text --match "id:$KITTY_WIN" --stdin
+  sleep 0.1
+  printf '%b' '\x1b' | kitty @ --to "$KITTY_SOCK" send-text --match "id:$KITTY_WIN" --stdin
+  # > escape-time (10 ms): 50 ms reichen, echtes Tippen simuliert groesszuegiger
+  sleep 0.05
+  printf '%b' ':q!\n' | kitty @ --to "$KITTY_SOCK" send-text --match "id:$KITTY_WIN" --stdin
+  sleep "$SETTLE"
+  local pane
+  pane="$(tmux capture-pane -t viEsc -p)"
+  tmux select-window -t "$prev" 2>/dev/null || true
+  # Erwartung: vi wurde verlassen, Shell-Prompt wieder sichtbar
+  printf '%s' "$pane" | grep -Eq 'robert@s1' \
+    || { printf 'visible pane:\n%s\n' "$pane" >&2; false; }
 }

@@ -46,3 +46,42 @@ Guidelines:
 - Message is concise and starts lowercase where possible.
 - Do not use trailing `...`.
 - Do not use emojis.
+
+## Terminal-Tests
+
+Die Tastatur-Kette kitty -> tmux -> (ssh) -> Shell ist fragil. Konfigurations-
+änderungen an diesen Dateien MÜSSEN die Regressionstests erfüllen (grün):
+
+- `private_dot_config/kitty/kitty.conf`
+- `private_dot_config/tmux/tmux.conf`
+- `~/.ssh/config` (insb. der `s1.local`-Block)
+- `private_dot_config/terminal-tests/` selbst (bei Test-Anpassungen)
+
+Ausführen:
+
+```bash
+bats ~/.config/terminal-tests/keybindings.bats
+# bei langsamer SSH-Verbindung mehr Puffer geben:
+SETTLE=1.5 bats ~/.config/terminal-tests/keybindings.bats
+```
+
+Zwei Ebenen (Details in `private_dot_config/terminal-tests/README.md`):
+
+- **Tier A** (statische Config-Verträge) MUSS immer grün sein — kein Laufzeit-
+  ambiente nötig.
+- **Tier B** (Live-Verhalten) wird sauber übersprungen, wenn kitty/tmux/ssh
+  fehlen, außer bei explizit als verbindlich markierten Tests (z. B.
+  Escape-in-vi-über-ssh); diese werden ROT, wenn die Umgebung nicht
+  erreichbar ist, weil die gefangene Regression sonst still bliebe.
+
+Vorrang-Regel bei rot: der Test hat Vorrang vor der Config. Zwei legitime
+Wege zum Grün:
+
+1. Config-Fehler beheben — der Standardfall bei versehentlichen Edits.
+2. Bei bewussten Funktionswechseln (z. B. `extended-keys` von `off` auf
+   `on`) Test **und** Rationale (README.md) aktualisieren; der Test
+   spiegelt dann den neuen Soll-Zustand.
+
+Schlupfloch-Verbot: ein Test darf nie allein gelöscht oder verwässert werden,
+um ihn grün zu bekommen. Bei Weg 2 muss die Rationale in README.md die
+Entscheidung dokumentieren.

@@ -106,10 +106,21 @@ require_live() {
 }
 
 # require_ssh_host HOST — Skip, wenn HOST nicht schlüsselbasiert erreichbar ist
-# (BatchMode verhindert Passwort-Prompts, die den Test aufhängen würden).
+# (BatchMode verhindert Passwort-Prompts, die den Test aufhängen würde).
 require_ssh_host() {
   ssh -o BatchMode=yes -o ConnectTimeout=4 "$1" true >/dev/null 2>&1 \
     || skip "ssh host '$1' not reachable non-interactively"
+}
+
+# require_ssh_host_mandatory HOST — wie require_ssh_host, aber ROT statt skip.
+# Für Tests, deren Regression still bliebe, wenn der Host einfach fehlt (z. B.
+# Escape-in-vi: das ist genau der Bug, der nur über das Live-Verhalten auf
+# s1.local fassbar ist). Ein fehlender Host macht den Test wertlos, daher muss
+# er bewusst failen, nicht übersprungen werden.
+require_ssh_host_mandatory() {
+  ssh -o BatchMode=yes -o ConnectTimeout=4 "$1" true >/dev/null 2>&1 \
+    || { echo "mandatory ssh host '$1' not reachable non-interactively" >&3; \
+         false; }
 }
 
 # ---------------------------------------------------------------------------
