@@ -1,0 +1,33 @@
+{{ if contains "microsoft" (lower .chezmoi.kernel.osrelease) -}}
+#!/bin/bash
+# Richtet den stündlichen Cron-Job für den Brave-Bookmarks-Export ein (nur WSL / Arbeitsrechner).
+set -euo pipefail
+
+OUTPUT_FILE="/mnt/c/Users/robert.doering/Obsidian/main2/main2/halde/Quentic Links.md"
+LOG_FILE="$HOME/.local/state/brave_bookmarks_to_md.log"
+CRON_LINE="0 * * * * /usr/bin/python3 $HOME/.local/bin/brave_bookmarks_to_md.py \"$OUTPUT_FILE\" >> $LOG_FILE 2>&1"
+
+mkdir -p "$HOME/.local/state"
+
+# Crontab-Eintrag idempotent setzen (alte Zeile mit dem Skript wird ersetzt)
+( crontab -l 2>/dev/null | grep -v 'brave_bookmarks_to_md.py' || true; echo "$CRON_LINE" ) | crontab -
+echo "Crontab-Eintrag gesetzt: $CRON_LINE"
+
+# cron-Autostart beim WSL-Boot sicherstellen
+WSL_CONF="/etc/wsl.conf"
+if ! grep -qs 'service cron start' "$WSL_CONF"; then
+    if grep -qs '^\[boot\]' "$WSL_CONF"; then
+        echo "WARNUNG: $WSL_CONF enthält bereits eine [boot]-Sektion." >&2
+        echo "Bitte manuell 'command = \"service cron start\"' dort ergänzen/zusammenführen." >&2
+    else
+        printf '\n[boot]\ncommand = "service cron start"\n' | sudo tee -a "$WSL_CONF" >/dev/null
+        echo "[boot]-Sektion mit cron-Autostart zu $WSL_CONF hinzugefügt."
+    fi
+fi
+
+# cron sofort starten, falls nicht aktiv
+if ! pgrep -x cron >/dev/null; then
+    sudo service cron start
+    echo "cron-Daemon gestartet."
+fi
+{{ end -}}
