@@ -268,6 +268,25 @@ EOF
     esac
 }
 
+# at/atd: no brew formula exists (macOS ships /usr/bin/at natively via launchd),
+# and mise has no backend for it either (it's a system daemon package with a
+# root-owned spool dir, not a portable release binary). Linux uses apt; the
+# atd boot-autostart for WSL lives in run_onchange_40_setup-atd-wsl.sh.tmpl.
+install_at() {
+    case "$os" in
+        Darwin)
+            if command -v at >/dev/null 2>&1; then
+                status_line skip at "already installed (built into macOS)"
+            else
+                status_line fail at "missing built-in 'at' binary, unexpected on macOS"
+            fi
+            ;;
+        Linux)
+            install_apt_pkg "at" "at"
+            ;;
+    esac
+}
+
 # --- System-level tools (not in the mise registry) ---------------------------
 # Dev tools (starship, ripgrep, fzf, tmux, neovim, zoxide, yazi, atuin, delta,
 # fd, etc.) are managed by mise via ~/.config/mise/config.toml. Only tools
@@ -286,6 +305,7 @@ install_tool "p7zip"   "7z"      "p7zip-full" "7z"
 install_tool "sysbench" "sysbench" "sysbench" "sysbench"
 install_globalping
 install_tailscale
+install_at
 
 # macOS fallbacks for tools that mise cannot install on darwin.
 case "$os" in

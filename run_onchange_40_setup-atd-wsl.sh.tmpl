@@ -1,0 +1,32 @@
+{{ if contains "microsoft" (lower .chezmoi.kernel.osrelease) -}}
+#!/bin/bash
+# Richtet den atd-Autostart beim WSL-Boot ein, damit zeitgesteuerte 'at'-Jobs ausgeführt werden.
+# WSL hat kein systemd als PID 1 (siehe /etc/wsl.conf [boot]), daher startet
+# nichts den Daemon automatisch ohne diesen Eintrag.
+set -euo pipefail
+
+WSL_CONF="/etc/wsl.conf"
+
+# atd sofort starten, falls nicht aktiv
+if ! pgrep -x atd >/dev/null; then
+    sudo service atd start
+    echo "atd-Daemon gestartet."
+fi
+
+# atd-Autostart beim WSL-Boot sicherstellen
+if ! grep -qs 'service atd start' "$WSL_CONF"; then
+    if grep -qs '^\[boot\]' "$WSL_CONF"; then
+        if grep -qsE '^command[[:space:]]*=[[:space:]]*"service cron start"$' "$WSL_CONF"; then
+            # Bestehende Boot-Kommandozeile (vom cron-Setup) um atd erweitern statt zu überschreiben.
+            sudo sed -i 's/^command[[:space:]]*=[[:space:]]*"service cron start"$/command = "service cron start \&\& service atd start"/' "$WSL_CONF"
+            echo "atd-Autostart zur bestehenden [boot]-command-Zeile in $WSL_CONF hinzugefügt."
+        else
+            echo "WARNUNG: $WSL_CONF enthält bereits eine [boot]-Sektion in unerwarteter Form." >&2
+            echo "Bitte manuell 'service atd start' zum command-Wert dort ergänzen." >&2
+        fi
+    else
+        printf '\n[boot]\ncommand = "service atd start"\n' | sudo tee -a "$WSL_CONF" >/dev/null
+        echo "[boot]-Sektion mit atd-Autostart zu $WSL_CONF hinzugefügt."
+    fi
+fi
+{{ end -}}
