@@ -21,9 +21,5 @@ vim.cmd('filetype indent plugin on')
 vim.opt.cursorline = true
 vim.opt.termguicolors = true -- Aktiviert 24-bit RGB Farben im Terminal
 
--- Highlight-Gruppe definieren
--- Das entspricht deinem: highlight CursorLine guibg=#2c323c
-vim.api.nvim_set_hl(0, "CursorLine", { bg = "#2c323c", ctermbg = 235 })
-
 -- linenumber
 vim.opt.number = true
