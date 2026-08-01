@@ -26,6 +26,20 @@ then
   export SSL_CERT_DIR=/etc/ssl/certs
 fi
 
+# Nix: Completions aus allen Nix-Profilen (NIX_PROFILES) in den zsh-fpath
+# aufnehmen. Die Profile liegen unter XDG_STATE_HOME (~/.local/state/nix/
+# profiles); ~/.nix-profile ist nur der von Nix angelegte Kompat-Symlink.
+# zsh wertet XDG_DATA_DIRS nicht nach fpath aus, daher explizit. Reihenfolge
+# system-<user, damit user-Overrides Vorrang haben.
+if [[ -n "$NIX_PROFILES" ]]; then
+  local _nix_fpath=()
+  for p in ${(s: :)NIX_PROFILES}; do
+    [[ -d "$p/share/zsh/site-functions" ]] &&
+      _nix_fpath+=("$p/share/zsh/site-functions")
+  done
+  (( ${#_nix_fpath[@]} )) && fpath=($_nix_fpath[@] $fpath)
+fi
+
 # Caches completion/init scripts of external tools, keyed by binary mtime.
 # Re-runs the tool only when the binary is updated, otherwise the cached
 # script is sourced directly. Uses the zsh stat builtin (no subprocess fork).
@@ -63,6 +77,11 @@ if [[ -n ~/.zcompdump(#qN.mh+24) ]]; then
 else
   compinit -C -i
 fi
+
+# AWS CLI completion (nix-shipped, nicht als _aws-File, daher explizit sourcen).
+[[ -s ~/.nix-profile/share/zsh/site-functions/aws_zsh_completer.sh ]] &&
+  source ~/.nix-profile/share/zsh/site-functions/aws_zsh_completer.sh
+
 # Verzeichnisse zuerst anzeigen
 zstyle ':completion:*' list-dirs-first yes
 
@@ -117,12 +136,6 @@ fi
 if [ -d "$HOME/.cargo/bin" ] && [[ ":$PATH:" != *":$HOME/.cargo/bin:"* ]]; then
     PATH="$HOME/.cargo/bin:$PATH"
     export PATH
-fi
-
-# step CLI (smallstep) completion
-if command -v step >/dev/null 2>&1
-then
-  _zsh_cache step "step completion zsh"
 fi
 
 # prompt
@@ -182,32 +195,9 @@ then
   _zsh_cache k3d "k3d completion zsh"
 fi
 
-if command -v helm >/dev/null 2>&1
-then
-  _zsh_cache helm "helm completion zsh"
-fi
-
-if command -v gh  >/dev/null 2>&1
-then
-  _zsh_cache gh "gh completion --shell zsh"
-fi
-
-
-if command -v just  >/dev/null 2>&1
-then
-  _zsh_cache just "just --completions zsh"
-fi
-
 if command -v globalping >/dev/null 2>&1
 then
   _zsh_cache globalping "globalping completion zsh"
-fi
-
-if command -v rg >/dev/null 2>&1; then
-  _rg() {
-    eval "$(rg --generate=complete-zsh | sed '1s/^/#compdef _rg rg\n/')"
-  }
-  compdef _rg rg
 fi
 
 
