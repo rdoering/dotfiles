@@ -141,73 +141,6 @@ install_tool() {
     esac
 }
 
-# globalping on macOS lives in the jsdelivr/globalping tap; on Linux the
-# versionless GitHub release tarball is fetched directly. Not in the mise
-# registry, so it stays here.
-install_globalping_linux() {
-    if command -v globalping >/dev/null 2>&1; then
-        status_line skip globalping "already installed"
-        return 0
-    fi
-    local arch
-    case "$(uname -m)" in
-        x86_64) arch="x86_64" ;;
-        aarch64 | arm64) arch="arm64" ;;
-        *)
-            status_line skip globalping "unsupported architecture $(uname -m)"
-            return 0
-            ;;
-    esac
-    local url="https://github.com/jsdelivr/globalping-cli/releases/latest/download/globalping_Linux_${arch}.tar.gz"
-    local tmp bin
-    tmp="$(mktemp -d)"
-    if ! curl -fsSL "$url" -o "$tmp/archive.tar.gz"; then
-        record_error "globalping: download failed ($url)"
-        rm -rf "$tmp"
-        return 0
-    fi
-    if ! tar -xzf "$tmp/archive.tar.gz" -C "$tmp"; then
-        record_error "globalping: extraction failed"
-        rm -rf "$tmp"
-        return 0
-    fi
-    bin="$(find "$tmp" -type f -name globalping -print -quit)"
-    if [[ -z "$bin" ]]; then
-        record_error "globalping: binary not found in archive"
-        rm -rf "$tmp"
-        return 0
-    fi
-    mkdir -p "$HOME/.local/bin"
-    if ! install -m 0755 "$bin" "$HOME/.local/bin/globalping"; then
-        record_error "globalping: install to ~/.local/bin failed"
-        rm -rf "$tmp"
-        return 0
-    fi
-    rm -rf "$tmp"
-    status_line ok globalping "installed to ~/.local/bin"
-}
-
-install_globalping() {
-    case "$os" in
-        Darwin)
-            if command -v globalping >/dev/null 2>&1; then
-                status_line skip globalping "already installed"
-                return 0
-            fi
-            if ! command -v brew >/dev/null 2>&1; then
-                status_line skip globalping "brew not found"
-                return 0
-            fi
-            if ! brew tap jsdelivr/globalping 2>&1 | indent; then
-                record_error "brew tap 'jsdelivr/globalping' failed"
-                return 0
-            fi
-            install_brew_pkg "globalping" "globalping"
-            ;;
-        Linux) install_globalping_linux ;;
-    esac
-}
-
 # Tailscale stays here because its macOS standalone GUI app needs a wrapper
 # script (bundleIdentifier lookup breaks via plain symlink), and the App Store
 # variant must not be shadowed by a brew install. The Linux variant uses apt.
@@ -269,9 +202,9 @@ EOF
 }
 
 # at/atd: no brew formula exists (macOS ships /usr/bin/at natively via launchd),
-# and mise has no backend for it either (it's a system daemon package with a
-# root-owned spool dir, not a portable release binary). Linux uses apt; the
-# atd boot-autostart for WSL lives in run_onchange_40_setup-atd-wsl.sh.tmpl.
+# and Nix cannot model this system daemon package (root-owned spool dir, not a
+# portable release binary). Linux uses apt; the atd boot-autostart for WSL
+# lives in run_onchange_40_setup-atd-wsl.sh.tmpl.
 install_at() {
     case "$os" in
         Darwin)
@@ -287,33 +220,14 @@ install_at() {
     esac
 }
 
-# --- System-level tools (not in the mise registry) ---------------------------
-# Dev tools (starship, ripgrep, fzf, tmux, neovim, zoxide, yazi, atuin, delta,
-# fd, etc.) are managed by mise via ~/.config/mise/config.toml. Only tools
-# that need brew/apt or have macOS GUI integration logic remain here.
-#
-# btop, eza: on macOS these are Linux-only in mise (btop has no macOS release
-# assets; eza's asdf plugin is hardcoded to x86_64). They fall back to brew.
-# On Intel Macs (Rosetta) atuin/delta/fd would also need brew fallback since
-# their aqua backends only ship darwin/arm64 binaries. This script does not
-# auto-detect Rosetta — if you run on an Intel Mac, add the brew fallbacks
-# for atuin/delta/fd manually.
+# --- Tools outside Nix's reach ----------------------------------------------
+# All dev tools and system packages are managed by Nix Home Manager via the
+# flake in home-manager/. This script handles only the sole remaining
+# exceptions that Nix cannot model: tailscale (macOS GUI app wrapper, see
+# above) and at/atd (system daemon package). The Linux variants use apt.
 
-install_tool "zsh"     "zsh"     "zsh"       "zsh"
-install_tool "unzip"   "unzip"   "unzip"     "unzip"
-install_tool "p7zip"   "7z"      "p7zip-full" "7z"
-install_tool "sysbench" "sysbench" "sysbench" "sysbench"
-install_globalping
 install_tailscale
 install_at
-
-# macOS fallbacks for tools that mise cannot install on darwin.
-case "$os" in
-    Darwin)
-        install_brew_pkg "btop" "btop"
-        install_brew_pkg "eza"  "eza"
-        ;;
-esac
 
 if [[ ${#FAILED[@]} -gt 0 ]]; then
     echo >&2

@@ -1,0 +1,52 @@
+#!/bin/bash
+set -euo pipefail
+
+status_line() {
+    local status="$1"
+    local name="$2"
+    local message="$3"
+    local label="$status"
+    case "$status" in
+        ok) label=" ok " ;;
+        *) label="$(printf '%-4s' "$status")" ;;
+    esac
+    printf '[%s] %-12s %s\n' "$label" "$name" "$message"
+}
+
+indent() {
+    sed 's/^/   /'
+}
+
+# Idempotent: if the Nix store already exists, nothing to do. Re-running this
+# script (e.g. after editing it) is a no-op. The Determinate installer itself
+# is also idempotent, but we short-circuit to avoid the network round-trip.
+if [[ -x /nix/var/nix/profiles/default/bin/nix ]]; then
+    status_line skip nix "already installed at /nix"
+    exit 0
+fi
+
+if [[ -d /nix ]]; then
+    # /nix exists but the binary is missing — partial/broken install. Let the
+    # Determinate installer repair it rather than guessing.
+    status_line run nix "/nix exists but binary missing — repairing"
+fi
+
+if ! command -v curl >/dev/null 2>&1; then
+    status_line fail nix "curl not found, cannot bootstrap nix"
+    exit 1
+fi
+
+status_line run nix "installing via Determinate Systems installer"
+if curl --proto '=https' --tlsv1.2 -sSf -L \
+    https://install.determinate.systems/nix | sh -s -- install --no-confirm 2>&1 | indent; then
+    status_line ok nix "installed to /nix"
+else
+    status_line fail nix "installation via Determinate installer failed"
+    exit 1
+fi
+
+# The installer writes /nix/var/nix/profiles/default/bin into /etc/profile.d
+# and the shell rc files for future sessions, but the current shell does not
+# pick it up. The home-manager switch script (run_onchange_30) resolves the
+# nix binary by absolute path, so no PATH export is needed here.
+status_line ok nix "open a new shell or run chezmoi apply again to use nix"

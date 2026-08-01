@@ -1,4 +1,4 @@
-{{ if contains "microsoft" (lower .chezmoi.kernel.osrelease) -}}
+{{- if and (eq .chezmoi.os "linux") (contains "microsoft" (lower (.chezmoi.kernel.osrelease | default ""))) -}}
 #!/bin/bash
 # Richtet den atd-Autostart beim WSL-Boot ein, damit zeitgesteuerte 'at'-Jobs ausgeführt werden.
 # WSL hat kein systemd als PID 1 (siehe /etc/wsl.conf [boot]), daher startet

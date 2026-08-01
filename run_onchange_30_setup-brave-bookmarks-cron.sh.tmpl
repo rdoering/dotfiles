@@ -1,4 +1,4 @@
-{{ if contains "microsoft" (lower .chezmoi.kernel.osrelease) -}}
+{{- if and (eq .chezmoi.os "linux") (contains "microsoft" (lower (.chezmoi.kernel.osrelease | default ""))) -}}
 #!/bin/bash
 # Richtet den stündlichen Cron-Job für den Brave-Bookmarks-Export ein (nur WSL / Arbeitsrechner).
 set -euo pipefail

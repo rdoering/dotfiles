@@ -1,1 +1,6 @@
 README.md
+
+# The Home Manager flake lives in the chezmoi source for versioning (git +
+# flake.lock) but must NOT be materialized into ~. It is consumed in-place by
+# run_onchange_40_home_manager_switch.sh.tmpl via {{ .chezmoi.sourceDir }}.
+home-manager

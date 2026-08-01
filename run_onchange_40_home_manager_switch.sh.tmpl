@@ -1,0 +1,90 @@
+#!/bin/bash
+# home-manager/flake.nix hash: {{ include "home-manager/flake.nix" | sha256sum }}
+# home-manager/home.nix hash: {{ include "home-manager/home.nix" | sha256sum }}
+set -euo pipefail
+
+status_line() {
+    local status="$1"
+    local name="$2"
+    local message="$3"
+    local label="$status"
+    case "$status" in
+        ok) label=" ok " ;;
+        *) label="$(printf '%-4s' "$status")" ;;
+    esac
+    printf '[%s] %-12s %s\n' "$label" "$name" "$message"
+}
+
+indent() {
+    sed 's/^/   /'
+}
+
+FLAKE_DIR="{{ .chezmoi.sourceDir }}/home-manager"
+
+# Locate the nix binary. The bootstrap script (run_onchange_40) installs Nix
+# to /nix and adds it to the shell PATH for future sessions, but the current
+# shell may not yet have it on PATH.
+NIX_BIN=""
+for candidate in /nix/var/nix/profiles/default/bin/nix "$HOME/.nix-profile/bin/nix"; do
+    if [[ -x "$candidate" ]]; then
+        NIX_BIN="$candidate"
+        break
+    fi
+done
+
+if [[ -z "$NIX_BIN" ]]; then
+    status_line fail home-manager "nix not found — run run_onchange_40_install_nix_bootstrap first"
+    exit 1
+fi
+
+NIX_FLAGS=(--extra-experimental-features 'nix-command flakes')
+
+# Select the matching homeConfiguration for this host. The flake exposes one
+# output per (kernel, arch) tuple: robert-<kernel>-<arch>.
+case "$(uname -s)/$(uname -m)" in
+    Darwin/arm64)   HM_TARGET="robert-darwin-arm64" ;;
+    Darwin/x86_64)  HM_TARGET="robert-darwin-x86_64" ;;
+    Linux/x86_64)   HM_TARGET="robert-linux-x86_64" ;;
+    Linux/aarch64)  HM_TARGET="robert-linux-arm64" ;;
+    *)
+        status_line fail home-manager "unsupported platform $(uname -s)/$(uname -m)"
+        exit 1
+        ;;
+esac
+
+# Ensure flake.lock exists. On a fresh clone (or after `nix flake update`)
+# it may be missing/out-of-sync; `nix flake lock` creates it without bumping
+# input versions (unlike `nix flake update`). Idempotent and safe to always run.
+if [[ ! -f "$FLAKE_DIR/flake.lock" ]]; then
+    status_line run flake "generating flake.lock"
+    "$NIX_BIN" "${NIX_FLAGS[@]}" flake lock "$FLAKE_DIR" 2>&1 | indent
+fi
+
+status_line run home-manager "switching flake $FLAKE_DIR#$HM_TARGET"
+
+# Once programs.home-manager.enable has run at least once, the home-manager
+# binary lives in the profile bin dir and can be invoked directly. On the
+# very first switch we fall back to `nix run home-manager` (flake registry).
+HM_BIN=""
+for candidate in "$HOME/.nix-profile/bin/home-manager" "/nix/var/nix/profiles/default/bin/home-manager"; do
+    if [[ -x "$candidate" ]]; then
+        HM_BIN="$candidate"
+        break
+    fi
+done
+
+if [[ -n "$HM_BIN" ]]; then
+    if "$HM_BIN" switch --flake "$FLAKE_DIR#$HM_TARGET" 2>&1 | indent; then
+        status_line ok home-manager "switch complete"
+    else
+        status_line fail home-manager "switch failed"
+        exit 1
+    fi
+else
+    if "$NIX_BIN" "${NIX_FLAGS[@]}" run home-manager -- switch --flake "$FLAKE_DIR#$HM_TARGET" 2>&1 | indent; then
+        status_line ok home-manager "switch complete (bootstrap via nix run)"
+    else
+        status_line fail home-manager "switch failed"
+        exit 1
+    fi
+fi

@@ -2,25 +2,44 @@
 
 ## Tool installation policy
 
-Dev tools (CLIs, language runtimes, GitHub-release binaries) are managed by
-**mise** via `private_dot_config/mise/config.toml`. mise is the preferred
-installation path for any new dev tool.
+Guiding principle: **one declarative package manager for everything.**
+All tools — dev CLIs, language runtimes, system utilities, GitHub-release
+binaries — are managed by **Nix Home Manager** via the flake in
+`home-manager/` (source: `home-manager/home.nix`). The flake is the single
+source of truth for the user environment; `flake.lock` is committed for
+reproducibility.
 
-- Check the mise registry first: `mise registry | grep <tool>`
-- If the tool is in the registry, add it to `~/.config/mise/config.toml`
-  (source: `private_dot_config/mise/config.toml` in chezmoi). Use `latest`
-  unless a specific version is required.
-- mise bootstrap + `mise install` is driven by
-  `run_onchange_20_install_mise_tools.sh.tmpl` (hash-triggered on
-  `mise.toml` changes).
-- Only fall back to the shell installer (`dot_local/bin/executable_install_my_tools.sh`)
-  for tools that mise cannot manage:
-  - System packages that need `apt`/`brew` directly (zsh, unzip, p7zip, sysbench)
-  - Tools not in the mise registry (globalping on Linux)
-  - Tools with macOS GUI integration logic (tailscale standalone/app-store wrapper)
+Decision tree for any new tool:
 
-Do not add new `install_X()` shell functions or `curl | bash` installers for
-tools that mise can manage. Use mise instead.
+1. Is the tool in nixpkgs? → add it to `home.packages` in `home.nix`.
+   Check with `nix run nixpkgs#nix-search -- <tool>` or
+   https://search.nixos.org/packages (channel: unstable).
+
+2. Not in nixpkgs, but a fetchable release artifact (tarball/binary)?
+   → write a small derivation under `home-manager/` and register it as an
+   overlay in `flake.nix` (see `globalping.nix` as the reference pattern).
+   This mirrors the old `curl | tar | install` shell logic in a
+   reproducible, hash-pinned form.
+
+3. Only fall back to the shell installer
+   (`dot_local/bin/executable_install_my_tools.sh`) for tools that are
+   fundamentally outside Nix's reach — specifically macOS GUI integration
+   logic that Nix cannot model (tailscale standalone/app-store wrapper:
+   bundleIdentifier lookup, _MASReceipt sandbox detection, daemon-conflict
+   avoidance). This is the sole remaining exception, not a general path.
+
+Do NOT add new `install_X()` shell functions, `curl | bash` installers, or
+brew/apt calls for any tool that Nix can manage (steps 1 or 2). Homebrew is
+kept only as a minimized fallback for Casks/GUI apps; it is not a primary
+installation path.
+
+Nix itself is bootstrapped by `run_onchange_30_install_nix_bootstrap.sh.tmpl`
+(Determinate Systems installer, idempotent). Home Manager is driven by
+`run_onchange_40_home_manager_switch.sh.tmpl` (hash-triggered on `flake.nix`,
+`home.nix`, and `flake.lock` changes). The flake lives in the chezmoi source
+dir (git-tracked, `flake.lock` committed) and is excluded from target
+materialization via `.chezmoiignore`; the switch script references it through
+`{{ .chezmoi.sourceDir }}/home-manager#robert`.
 
 ## CLI output style
 
