@@ -52,6 +52,12 @@ case "$(uname -s)/$(uname -m)" in
         ;;
 esac
 
+# Corporate WSL machine logs in as "qtc340", not "robert" — home-manager
+# refuses to activate a config whose home.username doesn't match $USER.
+if [[ "$(whoami)" == "qtc340" ]]; then
+    HM_TARGET="qtc340-linux-x86_64"
+fi
+
 # Ensure flake.lock exists. On a fresh clone (or after `nix flake update`)
 # it may be missing/out-of-sync; `nix flake lock` creates it without bumping
 # input versions (unlike `nix flake update`). Idempotent and safe to always run.

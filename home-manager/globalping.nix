@@ -33,7 +33,7 @@ stdenv.mkDerivation {
   src = fetchurl {
     url = "https://github.com/jsdelivr/globalping-cli/releases/download/v${version}/${srcInfo.asset}";
     # Hash will be filled by nix after first build attempt with fakeHash.
-    hash = "sha256-7pTwr1GeiJaqidMntHUdf8MfpXr3Tn3kbT8xlNC2BgQ=";
+    hash = "sha256-1NpQkTavr1IvrnKNFy4/2pAPqBpIfu9QGdGPj5y+50M=";
   };
 
   # Linux binary may need auto-patching for interpreter/lib path; macOS is

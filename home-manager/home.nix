@@ -54,6 +54,7 @@
     pkgs.globalping
     pkgs.croc
     pkgs.lazygit
+    pkgs.xh
   ];
 
   # Let Home Manager install and manage itself.

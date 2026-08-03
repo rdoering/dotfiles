@@ -59,6 +59,14 @@
         username = "robert";
         homeDirectory = "/home/robert";
       };
+      # Corporate WSL machine: logged in as "qtc340", not "robert" — separate
+      # config so home-manager's username check (home.username == $USER)
+      # passes there. Picked explicitly by the switch script via `whoami`.
+      homeConfigurations.qtc340-linux-x86_64 = mkHome {
+        system = "x86_64-linux";
+        username = "qtc340";
+        homeDirectory = "/home/qtc340";
+      };
       homeConfigurations.robert-linux-arm64 = mkHome {
         system = "aarch64-linux";
         username = "robert";

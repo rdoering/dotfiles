@@ -1,0 +1,40 @@
+{{- if and (eq .chezmoi.os "linux") (contains "microsoft" (lower (.chezmoi.kernel.osrelease | default ""))) -}}
+#!/bin/bash
+# Startet nix-daemon beim WSL-Boot. WSL hat kein systemd als PID 1 (siehe
+# /etc/wsl.conf [boot]), daher startet die von Determinate Nix eingerichtete
+# systemd-Unit (nix-daemon.service) nie automatisch.
+set -euo pipefail
+
+NIX_DAEMON_BIN="/nix/var/nix/profiles/default/bin/nix-daemon"
+LOG_FILE="/var/log/nix-daemon.log"
+WSL_CONF="/etc/wsl.conf"
+BOOT_CMD_FRAGMENT="start-stop-daemon --start --background --no-close --output $LOG_FILE --exec $NIX_DAEMON_BIN"
+
+if [[ ! -x "$NIX_DAEMON_BIN" ]]; then
+    exit 0
+fi
+
+# nix-daemon sofort starten, falls nicht aktiv
+if ! pgrep -x nix-daemon >/dev/null; then
+    sudo start-stop-daemon --start --background --no-close --output "$LOG_FILE" --exec "$NIX_DAEMON_BIN"
+    echo "nix-daemon gestartet."
+fi
+
+# nix-daemon-Autostart beim WSL-Boot sicherstellen
+if ! grep -qs -- "$NIX_DAEMON_BIN" "$WSL_CONF"; then
+    if grep -qs '^\[boot\]' "$WSL_CONF"; then
+        if sudo grep -qsE '^command[[:space:]]*=[[:space:]]*".*"$' "$WSL_CONF"; then
+            # Bestehende [boot]-command-Zeile um nix-daemon erweitern, unabhängig
+            # vom aktuellen Inhalt (statt eine exakte Vorgänger-Zeile zu erwarten).
+            sudo sed -i -E "s|^command([[:space:]]*)=([[:space:]]*)\"(.*)\"\$|command\1=\2\"\3 \&\& ($BOOT_CMD_FRAGMENT)\"|" "$WSL_CONF"
+            echo "nix-daemon-Autostart zur bestehenden [boot]-command-Zeile in $WSL_CONF hinzugefügt."
+        else
+            echo "WARNUNG: $WSL_CONF enthält bereits eine [boot]-Sektion in unerwarteter Form." >&2
+            echo "Bitte manuell '$BOOT_CMD_FRAGMENT' zum command-Wert dort ergänzen." >&2
+        fi
+    else
+        printf '\n[boot]\ncommand = "%s"\n' "$BOOT_CMD_FRAGMENT" | sudo tee -a "$WSL_CONF" >/dev/null
+        echo "[boot]-Sektion mit nix-daemon-Autostart zu $WSL_CONF hinzugefügt."
+    fi
+fi
+{{ end -}}
