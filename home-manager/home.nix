@@ -52,6 +52,7 @@
     pkgs.p7zip
     pkgs.sysbench
     pkgs.globalping
+    pkgs.ccboard
     pkgs.croc
     pkgs.lazygit
     pkgs.xh

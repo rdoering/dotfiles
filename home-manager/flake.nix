@@ -15,6 +15,7 @@
       # home.nix can reference them by attribute name (e.g. globalping).
       localOverlay = final: prev: {
         globalping = final.callPackage ./globalping.nix { };
+        ccboard = final.callPackage ./ccboard.nix { };
       };
 
       # Build a home-manager configuration for one target platform.
