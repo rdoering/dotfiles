@@ -110,6 +110,11 @@ bindkey "\e[1;5D" backward-word
 alias dc='docker compose'
 alias d=docker
 
+# git alias
+alias gst='git status'
+alias gco='git checkout'
+alias glog='git log --oneline --decorate --graph'
+
 # ll using iso-format
 export TIME_STYLE=long-iso
 

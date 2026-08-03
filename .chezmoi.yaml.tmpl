@@ -5,10 +5,14 @@
 encryption: age
 
 cd:
+{{- if eq .chezmoi.os "darwin" }}
   command: arch
   args:
     - "-arm64"
     - "/bin/zsh"
+{{- else }}
+  command: zsh
+{{- end }}
 
 diff:
   command: {{ $diff_cmd }}
