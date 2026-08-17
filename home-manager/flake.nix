@@ -3,19 +3,24 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    # opencode on nixpkgs-unstable is a Bun-compiled binary that segfaults
+    # inside ld.so on WSL2 (github.com/anomalyco/opencode/issues/26846).
+    # The 25.11 stable build works, so we pin just that package to it below.
+    nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-25.11";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { nixpkgs, home-manager, ... }:
+  outputs = { nixpkgs, nixpkgs-stable, home-manager, ... }:
     let
       # Local derivations not in nixpkgs are wired in as an overlay so
       # home.nix can reference them by attribute name (e.g. globalping).
-      localOverlay = final: prev: {
+      localOverlay = system: final: prev: {
         globalping = final.callPackage ./globalping.nix { };
         ccboard = final.callPackage ./ccboard.nix { };
+        opencode = nixpkgs-stable.legacyPackages.${system}.opencode;
       };
 
       # Build a home-manager configuration for one target platform.
@@ -24,7 +29,7 @@
       # homeDirectory: absolute path to $HOME on that platform
       mkHome = { system, username, homeDirectory }:
         let
-          pkgs = nixpkgs.legacyPackages.${system}.extend localOverlay;
+          pkgs = nixpkgs.legacyPackages.${system}.extend (localOverlay system);
         in
         home-manager.lib.homeManagerConfiguration {
           inherit pkgs;
