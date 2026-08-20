@@ -20,7 +20,7 @@ let
         asset = "ccboard-linux-x86_64.tar.gz";
         hash = "sha256-FlPHMcl8JS0GaYnUHzFkh2dZ8g3onUthlAbbGieOefQ=";
       }
-    else if os == "Darwin" && arch == "aarch64" then
+    else if os == "Darwin" && (arch == "aarch64" || arch == "arm64") then
       {
         asset = "ccboard-macos-aarch64.tar.gz";
         hash = "sha256-jxAGjCjTlrpB722e004dU68s39by5EP1N2qIAQlJu1o=";
