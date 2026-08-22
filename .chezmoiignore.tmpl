@@ -4,3 +4,8 @@ README.md
 # flake.lock) but must NOT be materialized into ~. It is consumed in-place by
 # run_onchange_40_home_manager_switch.sh.tmpl via {{ .chezmoi.sourceDir }}.
 home-manager
+{{- if ne .chezmoi.os "darwin" }}
+# Paperless-Upload ist nur auf macOS-Maschinen relevant
+.local/bin/paperless-upload.sh
+Library/LaunchAgents
+{{- end }}
