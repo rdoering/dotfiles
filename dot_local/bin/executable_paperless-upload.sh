@@ -84,8 +84,11 @@ for f in "${files[@]}"; do
     rm -f "$response"
 
     if [ "$code" = "200" ]; then
-        rm "$f"
-        log "   OK: $name hochgeladen (HTTP 200, Task: $body), lokale Datei geloescht."
+        if mv "$f" "$HOME/.Trash/" 2>>"$LOG"; then
+            log "   OK: $name hochgeladen (HTTP 200, Task: $body), lokale Datei in Papierkorb verschoben."
+        else
+            log "   OK: $name hochgeladen (HTTP 200, Task: $body), aber Verschieben in Papierkorb fehlgeschlagen. Datei bleibt im Ordner."
+        fi
         ok=$((ok+1))
     else
         log "   FEHLER: $name nicht hochgeladen (HTTP $code, Antwort: $body). Datei bleibt im Ordner."
