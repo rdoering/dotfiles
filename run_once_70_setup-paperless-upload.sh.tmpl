@@ -1,0 +1,71 @@
+#!/bin/bash
+{{- if eq .chezmoi.os "darwin" }}
+set -u
+
+SERVICE="paperless-api-token"
+CONF_DIR="$HOME/.config/paperless-upload"
+CONF_FILE="$CONF_DIR/url"
+PLIST_TARGET="$HOME/Library/LaunchAgents/de.robert.paperless-upload.plist"
+SCAN_DIR="$HOME/Scans/Paperless"
+
+if security find-generic-password -s "$SERVICE" -w >/dev/null 2>&1 \
+    && [ -s "$CONF_FILE" ]; then
+    echo "paperless-upload: Bereits konfiguriert, Setup wird uebersprungen."
+    exit 0
+fi
+
+if [ ! -t 0 ]; then
+    echo "paperless-upload: Kein TTY verfuegbar, Abfrage nicht moeglich." >&2
+    echo "Bitte spaeter manuell ausfuehren: paperless-upload.sh --setup" >&2
+    exit 1
+fi
+
+read -rp "Paperless Basis-URL (z.B. https://paperless.example.com): " base_url
+base_url="${base_url%/}"
+
+if [ -z "$base_url" ]; then
+    echo "paperless-upload: Abgebrochen, keine URL eingegeben." >&2
+    exit 1
+fi
+
+read -rsp "Paperless API-Token eingeben (leer = abbrechen): " token
+echo
+
+if [ -z "$token" ]; then
+    echo "paperless-upload: Abgebrochen, kein Token eingegeben." >&2
+    exit 1
+fi
+
+code=$(curl -sSL -o /dev/null -w "%{http_code}" --max-time 10 \
+    -H "Authorization: Token $token" "$base_url/api/documents/?page_size=1" || echo "000")
+
+if [ "$code" != "200" ]; then
+    echo "paperless-upload: Token ungueltig oder Paperless nicht erreichbar (HTTP $code)." >&2
+    echo "LaunchAgent wird NICHT eingerichtet. Beim naechsten 'chezmoi apply' erneuter Versuch." >&2
+    exit 1
+fi
+
+mkdir -p "$CONF_DIR" "$SCAN_DIR"
+printf '%s\n' "$base_url" > "$CONF_FILE"
+chmod 600 "$CONF_FILE"
+
+security add-generic-password -s "$SERVICE" -a "$USER" -w "$token" -T /usr/bin/security -U \
+    || { echo "paperless-upload: Schluesselbund-Speicherung fehlgeschlagen." >&2; exit 1; }
+echo "paperless-upload: URL in $CONF_FILE und Token im Schluesselbund gespeichert."
+
+if [ ! -f "$PLIST_TARGET" ]; then
+    echo "paperless-upload: Plist $PLIST_TARGET fehlt (chezmoi-Reihenfolge?)." >&2
+    exit 1
+fi
+
+launchctl bootout "gui/$UID" "$PLIST_TARGET" 2>/dev/null || true
+if launchctl bootstrap "gui/$UID" "$PLIST_TARGET"; then
+    echo "paperless-upload: LaunchAgent geladen (de.robert.paperless-upload)."
+else
+    echo "paperless-upload: launchctl bootstrap fehlgeschlagen." >&2
+    echo "Manuell nachholen: launchctl bootstrap gui/\$UID $PLIST_TARGET" >&2
+    exit 1
+fi
+{{- else }}
+exit 0
+{{- end }}
