@@ -26,20 +26,6 @@ then
   export SSL_CERT_DIR=/etc/ssl/certs
 fi
 
-# Nix: Completions aus allen Nix-Profilen (NIX_PROFILES) in den zsh-fpath
-# aufnehmen. Die Profile liegen unter XDG_STATE_HOME (~/.local/state/nix/
-# profiles); ~/.nix-profile ist nur der von Nix angelegte Kompat-Symlink.
-# zsh wertet XDG_DATA_DIRS nicht nach fpath aus, daher explizit. Reihenfolge
-# system-<user, damit user-Overrides Vorrang haben.
-if [[ -n "$NIX_PROFILES" ]]; then
-  local _nix_fpath=()
-  for p in ${(s: :)NIX_PROFILES}; do
-    [[ -d "$p/share/zsh/site-functions" ]] &&
-      _nix_fpath+=("$p/share/zsh/site-functions")
-  done
-  (( ${#_nix_fpath[@]} )) && fpath=($_nix_fpath[@] $fpath)
-fi
-
 # Caches completion/init scripts of external tools, keyed by binary mtime.
 # Re-runs the tool only when the binary is updated, otherwise the cached
 # script is sourced directly. Uses the zsh stat builtin (no subprocess fork).
@@ -77,10 +63,6 @@ if [[ -n ~/.zcompdump(#qN.mh+24) ]]; then
 else
   compinit -C -i
 fi
-
-# AWS CLI completion (nix-shipped, nicht als _aws-File, daher explizit sourcen).
-[[ -s ~/.nix-profile/share/zsh/site-functions/aws_zsh_completer.sh ]] &&
-  source ~/.nix-profile/share/zsh/site-functions/aws_zsh_completer.sh
 
 # Verzeichnisse zuerst anzeigen
 zstyle ':completion:*' list-dirs-first yes
@@ -259,8 +241,8 @@ then
   tmux attach || tmux
 fi
 
-# Nix / Home Manager — prepended LAST so nix-managed tools always win over
-# brew, ~/bin, cargo, bun and everything else above. The Determinate installer
-# also adds nix to PATH via /etc/zshenv, but subsequent prependers push it
-# back; this final prepend restores priority.
-export PATH="$HOME/.nix-profile/bin:/nix/var/nix/profiles/default/bin${PATH+:$PATH}"
+# mise — activated LAST so mise-managed tool shims always win over brew,
+# ~/bin, cargo, bun and everything else above.
+if command -v mise >/dev/null 2>&1; then
+  eval "$(mise activate zsh)"
+fi

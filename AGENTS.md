@@ -2,44 +2,55 @@
 
 ## Tool installation policy
 
-Guiding principle: **one declarative package manager for everything.**
-All tools — dev CLIs, language runtimes, system utilities, GitHub-release
-binaries — are managed by **Nix Home Manager** via the flake in
-`home-manager/` (source: `home-manager/home.nix`). The flake is the single
-source of truth for the user environment; `flake.lock` is committed for
-reproducibility.
+Guiding principle: **mise first, Ansible only for what mise categorically
+cannot do.**
 
-Decision tree for any new tool:
+The stack is a small cascade: chezmoi (dotfiles, entry point) → mise
+(language runtimes and CLI tools) → Python (installed by mise) → Ansible
+(installed as a `pipx:ansible` mise tool, drives the native OS package
+manager for the few things mise can't handle). This replaced Nix Home
+Manager (flake + custom derivations + a manually maintained 5-host matrix),
+which was too complex for day-to-day maintenance.
 
-1. Is the tool in nixpkgs? → add it to `home.packages` in `home.nix`.
-   Check with `nix run nixpkgs#nix-search -- <tool>` or
-   https://search.nixos.org/packages (channel: unstable).
+Decision tree for any new tool — deliberately just two branches:
 
-2. Not in nixpkgs, but a fetchable release artifact (tarball/binary)?
-   → write a small derivation under `home-manager/` and register it as an
-   overlay in `flake.nix` (see `globalping.nix` as the reference pattern).
-   This mirrors the old `curl | tar | install` shell logic in a
-   reproducible, hash-pinned form.
+1. **Default, always try first:** add it to `private_dot_config/mise/config.toml`.
+   - Check `mise registry <tool>` / `mise search <tool>` for a direct entry.
+   - If it's not in mise's registry but ships prebuilt GitHub release
+     binaries, use the generic `ubi:owner/repo` backend in the same file —
+     **pin an exact version, never `"latest"`**, since `ubi:` only pins by
+     git tag (not a content hash like Nix derivations did; this is an
+     accepted, explicit trade-off, not a silent one).
+   - This covers essentially all CLI tools and language runtimes.
 
-3. Only fall back to the shell installer
-   (`dot_local/bin/executable_install_my_tools.sh`) for tools that are
-   fundamentally outside Nix's reach — specifically macOS GUI integration
-   logic that Nix cannot model (tailscale standalone/app-store wrapper:
-   bundleIdentifier lookup, _MASReceipt sandbox detection, daemon-conflict
-   avoidance). This is the sole remaining exception, not a general path.
+2. **Exception, only for Ansible's fixed scope:** `ansible/playbook.yml`
+   handles exactly:
+   - Tools mise's registry/ubi backend cannot install as a standalone
+     binary (e.g. `unzip`, `p7zip`, `sysbench` — no suitable GitHub release
+     artifact exists for them).
+   - OS-level integration mise cannot do at all: setting the login shell
+     (`zsh` must be a real, `/etc/shells`-registered OS package for `chsh`
+     to work — a mise shim doesn't qualify), fonts, daemons.
 
-Do NOT add new `install_X()` shell functions, `curl | bash` installers, or
-brew/apt calls for any tool that Nix can manage (steps 1 or 2). Homebrew is
-kept only as a minimized fallback for Casks/GUI apps; it is not a primary
-installation path.
+   This list is intentionally short and should only grow when a tool
+   genuinely fails one of the two tests above — not because a tool "feels"
+   system-level. Do not add apt/brew entries for anything mise can install.
 
-Nix itself is bootstrapped by `run_onchange_30_install_nix_bootstrap.sh.tmpl`
-(Determinate Systems installer, idempotent). Home Manager is driven by
-`run_onchange_40_home_manager_switch.sh.tmpl` (hash-triggered on `flake.nix`,
-`home.nix`, and `flake.lock` changes). The flake lives in the chezmoi source
-dir (git-tracked, `flake.lock` committed) and is excluded from target
-materialization via `.chezmoiignore`; the switch script references it through
-`{{ .chezmoi.sourceDir }}/home-manager#robert`.
+Only fall back to the shell installer
+(`dot_local/bin/executable_install_my_tools.sh`) for tools that are
+fundamentally outside both mise and Ansible's reach — specifically macOS
+GUI integration logic (tailscale standalone/app-store wrapper:
+bundleIdentifier lookup, _MASReceipt sandbox detection, daemon-conflict
+avoidance). This is the sole remaining exception, not a general path.
+
+mise itself is bootstrapped by `run_onchange_30_mise_setup.sh.tmpl`
+(installs mise if missing, then runs `mise install`; hash-triggered on
+`private_dot_config/mise/config.toml`). Ansible is driven by
+`run_onchange_40_ansible_playbook.sh.tmpl` (hash-triggered on
+`ansible/playbook.yml` and `ansible/requirements.yml`). The playbook lives
+in the chezmoi source dir (git-tracked) and is excluded from target
+materialization via `.chezmoiignore`; the script references it through
+`{{ .chezmoi.sourceDir }}/ansible`.
 
 ## CLI output style
 

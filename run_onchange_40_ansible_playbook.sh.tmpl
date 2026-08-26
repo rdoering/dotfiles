@@ -1,0 +1,43 @@
+#!/bin/bash
+# ansible/playbook.yml hash: {{ include "ansible/playbook.yml" | sha256sum }}
+# ansible/requirements.yml hash: {{ include "ansible/requirements.yml" | sha256sum }}
+set -euo pipefail
+
+status_line() {
+    local status="$1"
+    local name="$2"
+    local message="$3"
+    local label="$status"
+    case "$status" in
+        ok) label=" ok " ;;
+        *) label="$(printf '%-4s' "$status")" ;;
+    esac
+    printf '[%s] %-12s %s\n' "$label" "$name" "$message"
+}
+
+indent() {
+    sed 's/^/   /'
+}
+
+PLAYBOOK_DIR="{{ .chezmoi.sourceDir }}/ansible"
+
+if ! command -v mise >/dev/null 2>&1; then
+    status_line fail ansible "mise not found on PATH — run run_onchange_30_mise_setup first"
+    exit 1
+fi
+
+status_line run ansible "installing galaxy requirements"
+if mise exec -- ansible-galaxy collection install -r "$PLAYBOOK_DIR/requirements.yml" 2>&1 | indent; then
+    status_line ok ansible "requirements installed"
+else
+    status_line fail ansible "galaxy install failed"
+    exit 1
+fi
+
+status_line run ansible "running playbook.yml"
+if mise exec -- ansible-playbook -i localhost, -c local "$PLAYBOOK_DIR/playbook.yml" 2>&1 | indent; then
+    status_line ok ansible "playbook complete"
+else
+    status_line fail ansible "playbook failed"
+    exit 1
+fi

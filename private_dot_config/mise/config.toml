@@ -1,0 +1,46 @@
+[tools]
+python = "3.12"
+"pipx:ansible-core" = "latest"
+node = "lts"
+
+starship = "latest"
+ripgrep = "latest"
+fd = "latest"
+eza = "latest"
+btop = "latest"
+yazi = "latest"
+zoxide = "latest"
+atuin = "latest"
+delta = "latest"
+fzf = "latest"
+doggo = "latest"
+yq = "latest"
+jqp = "latest"
+gron = "latest"
+step = "latest"
+helm = "latest"
+marksman = "latest"
+just = "latest"
+rclone = "latest"
+restic = "latest"
+gh = "latest"
+awscli = "latest"
+neovim = "latest"
+tmux = "latest"
+croc = "latest"
+lazygit = "latest"
+xh = "latest"
+opencode = "latest"
+# postinstall downloads the native binary claude-code needs to run at all,
+# so it must not be skipped (mise defaults npm installs to --ignore-scripts).
+"npm:@anthropic-ai/claude-code" = { version = "latest", npm_args = "--ignore-scripts=false" }
+
+# GitHub-release binaries not in nixpkgs-equivalent registries, pinned to an
+# exact tag (not "latest") for reproducibility, mirroring the old Nix
+# derivation hash-pins as closely as mise's ubi backend allows.
+"ubi:FlorianBruniaux/ccboard" = "0.23.0"
+"ubi:jsdelivr/globalping-cli[exe=globalping]" = "1.5.2"
+
+# herdr: internal/company tool — no public GitHub release repo was found
+# during the Nix -> mise migration. Verify with `mise registry herdr` or add
+# a ubi:/http entry once the source is confirmed; install manually until then.

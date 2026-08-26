@@ -1,0 +1,56 @@
+#!/bin/bash
+# mise config hash: {{ include "private_dot_config/mise/config.toml" | sha256sum }}
+set -euo pipefail
+
+status_line() {
+    local status="$1"
+    local name="$2"
+    local message="$3"
+    local label="$status"
+    case "$status" in
+        ok) label=" ok " ;;
+        *) label="$(printf '%-4s' "$status")" ;;
+    esac
+    printf '[%s] %-12s %s\n' "$label" "$name" "$message"
+}
+
+indent() {
+    sed 's/^/   /'
+}
+
+MISE_BIN=""
+for candidate in "$HOME/.local/bin/mise" "/usr/local/bin/mise"; do
+    if [[ -x "$candidate" ]]; then
+        MISE_BIN="$candidate"
+        break
+    fi
+done
+if [[ -z "$MISE_BIN" ]] && command -v mise >/dev/null 2>&1; then
+    MISE_BIN="$(command -v mise)"
+fi
+
+if [[ -z "$MISE_BIN" ]]; then
+    if ! command -v curl >/dev/null 2>&1; then
+        status_line fail mise "curl not found, cannot bootstrap mise"
+        exit 1
+    fi
+    status_line run mise "installing via https://mise.run"
+    if curl --proto '=https' --tlsv1.2 -sSf https://mise.run | sh 2>&1 | indent; then
+        status_line ok mise "installed"
+    else
+        status_line fail mise "installation failed"
+        exit 1
+    fi
+    MISE_BIN="$HOME/.local/bin/mise"
+else
+    status_line skip mise "already installed at $MISE_BIN"
+fi
+
+status_line run mise "trusting and installing tools from config.toml"
+"$MISE_BIN" trust "$HOME/.config/mise/config.toml" 2>&1 | indent || true
+if "$MISE_BIN" install 2>&1 | indent; then
+    status_line ok mise "tools installed"
+else
+    status_line fail mise "tool install failed"
+    exit 1
+fi

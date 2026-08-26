@@ -220,11 +220,12 @@ install_at() {
     esac
 }
 
-# --- Tools outside Nix's reach ----------------------------------------------
-# All dev tools and system packages are managed by Nix Home Manager via the
-# flake in home-manager/. This script handles only the sole remaining
-# exceptions that Nix cannot model: tailscale (macOS GUI app wrapper, see
-# above) and at/atd (system daemon package). The Linux variants use apt.
+# --- Tools outside mise/Ansible's reach --------------------------------------
+# All dev tools and system packages are managed by mise (private_dot_config/
+# mise/config.toml) and Ansible (ansible/playbook.yml). This script handles
+# only the sole remaining exceptions neither can model: tailscale (macOS GUI
+# app wrapper, see above) and at/atd (system daemon package). The Linux
+# variants use apt.
 
 install_tailscale
 install_at
