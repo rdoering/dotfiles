@@ -17,17 +17,21 @@ Decision tree for any new tool — deliberately just two branches:
 1. **Default, always try first:** add it to `private_dot_config/mise/config.toml`.
    - Check `mise registry <tool>` / `mise search <tool>` for a direct entry.
    - If it's not in mise's registry but ships prebuilt GitHub release
-     binaries, use the generic `ubi:owner/repo` backend in the same file —
-     **pin an exact version, never `"latest"`**, since `ubi:` only pins by
-     git tag (not a content hash like Nix derivations did; this is an
-     accepted, explicit trade-off, not a silent one).
+     binaries, use the generic `github:owner/repo` backend in the same file —
+     **pin an exact version, never `"latest"`**, since `github:` only pins by
+     git tag (not a content hash like Nix derivations did; `mise.lock` could
+     add hashes but is deliberately not used — this is an accepted, explicit
+     trade-off, not a silent one).
    - This covers essentially all CLI tools and language runtimes.
 
 2. **Exception, only for Ansible's fixed scope:** `ansible/playbook.yml`
    handles exactly:
-   - Tools mise's registry/ubi backend cannot install as a standalone
+   - Tools mise's registry/github backend cannot install as a standalone
      binary (e.g. `unzip`, `p7zip`, `sysbench` — no suitable GitHub release
-     artifact exists for them).
+     artifact exists for them). `btop` belongs here too: upstream ships
+     linux-only binaries (no darwin release artifact at all), so mise can
+     only cover Linux; it is installed via the OS package manager on every
+     platform for consistency.
    - OS-level integration mise cannot do at all: setting the login shell
      (`zsh` must be a real, `/etc/shells`-registered OS package for `chsh`
      to work — a mise shim doesn't qualify), fonts, daemons.

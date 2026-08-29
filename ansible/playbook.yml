@@ -5,15 +5,19 @@
 
   vars:
     ansible_become_timeout: 10
-    # Only tools mise's registry/ubi backend cannot install as standalone
+    # Only tools mise's registry/github backend cannot install as standalone
     # binaries (unzip/p7zip/sysbench have no suitable GitHub release
     # binaries), plus anything needing OS-level integration (login shell).
+    # btop: upstream ships linux-only binaries (no darwin release artifact),
+    # so mise cannot provide it on macOS; installed via the OS package
+    # manager on every platform for consistency.
     packages:
       common:
         - zsh
         - unzip
         - p7zip
         - sysbench
+        - btop
 
   tasks:
     - name: Get my user

@@ -21,11 +21,6 @@ then
     # export HOMEBREW_NO_ENV_HINTS=1
 fi
 
-if [[ -d /etc/ssl/certs ]]
-then
-  export SSL_CERT_DIR=/etc/ssl/certs
-fi
-
 # Caches completion/init scripts of external tools, keyed by binary mtime.
 # Re-runs the tool only when the binary is updated, otherwise the cached
 # script is sourced directly. Uses the zsh stat builtin (no subprocess fork).

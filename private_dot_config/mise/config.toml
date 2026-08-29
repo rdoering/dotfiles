@@ -1,13 +1,15 @@
 [tools]
 python = "3.12"
-"pipx:ansible-core" = "latest"
+# uv doubles as the executor for pipx: tools (mise's pipx backend prefers uvx
+# over a real pipx binary), so pipx: tools must wait for it.
+uv = "latest"
+"pipx:ansible-core" = { version = "latest", depends = ["uv"] }
 node = "lts"
 
 starship = "latest"
 ripgrep = "latest"
 fd = "latest"
 eza = "latest"
-btop = "latest"
 yazi = "latest"
 zoxide = "latest"
 atuin = "latest"
@@ -23,6 +25,7 @@ marksman = "latest"
 just = "latest"
 rclone = "latest"
 restic = "latest"
+sops = "latest"
 gh = "latest"
 awscli = "latest"
 neovim = "latest"
@@ -35,12 +38,14 @@ opencode = "latest"
 # so it must not be skipped (mise defaults npm installs to --ignore-scripts).
 "npm:@anthropic-ai/claude-code" = { version = "latest", npm_args = "--ignore-scripts=false" }
 
-# GitHub-release binaries not in nixpkgs-equivalent registries, pinned to an
-# exact tag (not "latest") for reproducibility, mirroring the old Nix
-# derivation hash-pins as closely as mise's ubi backend allows.
-"ubi:FlorianBruniaux/ccboard" = "0.23.0"
-"ubi:jsdelivr/globalping-cli[exe=globalping]" = "1.5.2"
+# GitHub-release binaries not in curated registries, pinned to an exact tag
+# (not "latest"): these come straight from the upstream repo without a
+# registry vetting layer, so the tag pin is the minimal control.
+"github:FlorianBruniaux/ccboard" = "0.23.0"
+# Explicit asset_pattern: the release also ships .deb/.rpm/.pkg.tar.zst,
+# so autodetection could pick a wrong format; this covers all OS/arch.
+"github:jsdelivr/globalping-cli" = { version = "1.5.2", asset_pattern = 'globalping_{{ os(macos="Darwin", linux="Linux") }}_{{ arch(x64="x86_64") }}.tar.gz' }
 
 # herdr: internal/company tool — no public GitHub release repo was found
 # during the Nix -> mise migration. Verify with `mise registry herdr` or add
-# a ubi:/http entry once the source is confirmed; install manually until then.
+# a github:/http entry once the source is confirmed; install manually until then.
