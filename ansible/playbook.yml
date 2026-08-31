@@ -22,7 +22,7 @@
   tasks:
     - name: Get my user
       ansible.builtin.set_fact:
-        remote_regular_user: "{{ ansible_env.get('SUDO_USER', ansible_user_id) }}"
+        remote_regular_user: "{{ ansible_facts['env'].get('SUDO_USER', ansible_facts['user_id']) }}"
 
     - name: Install packages (macOS)
       community.general.homebrew:
