@@ -241,3 +241,10 @@ fi
 if command -v mise >/dev/null 2>&1; then
   eval "$(mise activate zsh)"
 fi
+
+# sops - secrets management. Must run AFTER mise activate: sops is
+# mise-managed and only on PATH once mise is active.
+if command -v sops >/dev/null 2>&1
+then
+  _zsh_cache sops "sops completion zsh"
+fi
