@@ -36,7 +36,7 @@ else
 fi
 
 status_line run ansible "running playbook.yml (asks once for BECOME password)"
-if mise exec -- ansible-playbook --ask-become-pass -i localhost, -c local "$ANSIBLE_DIR/plays/playbook.yml" -vvv 2>&1 | indent; then
+if mise exec -- ansible-playbook --ask-become-pass -i localhost, -c local "$ANSIBLE_DIR/plays/playbook.yml" 2>&1 | indent; then
     status_line ok ansible "playbook complete"
 else
     status_line fail ansible "playbook failed"
