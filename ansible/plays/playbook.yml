@@ -43,6 +43,16 @@
       ansible.builtin.set_fact:
         zsh_path: "{{ '/usr/local/bin/zsh' if ansible_facts['os_family'] == 'Darwin' else '/usr/bin/zsh' }}"
 
+    # chsh rejects shells that are not registered in /etc/shells; brew does
+    # not register its zsh there (Debian's zsh package does it itself).
+    - name: Register zsh in /etc/shells (macOS)
+      ansible.builtin.lineinfile:
+        path: /etc/shells
+        line: "{{ zsh_path }}"
+        state: present
+      when: ansible_facts['os_family'] == "Darwin"
+      become: true
+
     - name: Change shell to zsh
       ansible.builtin.user:
         name: "{{ remote_regular_user }}"

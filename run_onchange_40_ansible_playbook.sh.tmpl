@@ -1,5 +1,5 @@
 #!/bin/bash
-# ansible/playbook.yml hash: {{ include "ansible/playbook.yml" | sha256sum }}
+# ansible/playbook.yml hash: {{ include "ansible/plays/playbook.yml" | sha256sum }}
 # ansible/requirements.yml hash: {{ include "ansible/requirements.yml" | sha256sum }}
 set -euo pipefail
 
@@ -19,7 +19,8 @@ indent() {
     sed 's/^/   /'
 }
 
-PLAYBOOK_DIR="{{ .chezmoi.sourceDir }}/ansible"
+ANSIBLE_DIR="{{ .chezmoi.sourceDir }}/ansible"
+export ANSIBLE_CONFIG="${ANSIBLE_DIR}/ansible.cfg"
 
 if ! command -v mise >/dev/null 2>&1; then
     status_line fail ansible "mise not found on PATH — run run_onchange_30_mise_setup first"
@@ -27,15 +28,15 @@ if ! command -v mise >/dev/null 2>&1; then
 fi
 
 status_line run ansible "installing galaxy requirements"
-if mise exec -- ansible-galaxy collection install -r "$PLAYBOOK_DIR/requirements.yml" 2>&1 | indent; then
+if mise exec -- ansible-galaxy collection install -r "$ANSIBLE_DIR/requirements.yml" 2>&1 | indent; then
     status_line ok ansible "requirements installed"
 else
     status_line fail ansible "galaxy install failed"
     exit 1
 fi
 
-status_line run ansible "running playbook.yml"
-if mise exec -- ansible-playbook -i localhost, -c local "$PLAYBOOK_DIR/playbook.yml" 2>&1 | indent; then
+status_line run ansible "running playbook.yml (asks once for BECOME password)"
+if mise exec -- ansible-playbook --ask-become-pass -i localhost, -c local "$ANSIBLE_DIR/plays/playbook.yml" -vvv 2>&1 | indent; then
     status_line ok ansible "playbook complete"
 else
     status_line fail ansible "playbook failed"
