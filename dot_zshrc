@@ -120,6 +120,31 @@ if [ -d "$HOME/.cargo/bin" ] && [[ ":$PATH:" != *":$HOME/.cargo/bin:"* ]]; then
     export PATH
 fi
 
+if [[ -S ~/Library/Containers/com.bitwarden.desktop/Data/.bitwarden-ssh-agent.sock ]]
+then
+    export SSH_AUTH_SOCK=$(realpath ~/Library/Containers/com.bitwarden.desktop/Data/.bitwarden-ssh-agent.sock)
+fi
+
+export NVM_DIR="$HOME/.config/nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+# bun completions
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+# mise — activated AFTER all PATH-mutating setup above (~/bin, cargo, nvm,
+# bun) so mise shims still win, and BEFORE the tool integrations below:
+# those need their binaries on PATH, which only holds once mise is active.
+# (Previously they ran before mise activate and silently skipped on fresh
+# login shells — they only worked inside tmux-inherited environments.)
+if command -v mise >/dev/null 2>&1; then
+  eval "$(mise activate zsh)"
+fi
+
 # prompt
 if command -v starship >/dev/null 2>&1
 then
@@ -182,19 +207,12 @@ then
   _zsh_cache globalping "globalping completion zsh"
 fi
 
-
 if command -v nvim >/dev/null 2>&1; then
   alias v=nvim
   export EDITOR=nvim
 elif command -v vi >/dev/null 2>&1; then
   alias v=vi
   export EDITOR=vi
-fi
-
-
-if [[ -S ~/Library/Containers/com.bitwarden.desktop/Data/.bitwarden-ssh-agent.sock ]]
-then
-    export SSH_AUTH_SOCK=$(realpath ~/Library/Containers/com.bitwarden.desktop/Data/.bitwarden-ssh-agent.sock)
 fi
 
 # lazygit - TUI for git. lg wechselt beim Verlassen ins in lazygit
@@ -219,32 +237,21 @@ then
   compdef _opencode_yargs_completions oc
 fi
 
-
-export NVM_DIR="$HOME/.config/nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-
-# bun completions
-[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
-
-# bun
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
-
-if [[ -z "$TMUX" && -z "$HERDR_ENV" ]] && [[ -o interactive ]] && command -v tmux >/dev/null 2>&1
-then
-  tmux attach || tmux
-fi
-
-# mise — activated LAST so mise-managed tool shims always win over brew,
-# ~/bin, cargo, bun and everything else above.
-if command -v mise >/dev/null 2>&1; then
-  eval "$(mise activate zsh)"
-fi
-
 # sops - secrets management. Must run AFTER mise activate: sops is
 # mise-managed and only on PATH once mise is active.
 if command -v sops >/dev/null 2>&1
 then
   _zsh_cache sops "sops completion zsh"
+fi
+
+# just - command runner. Must run AFTER mise activate for the same reason.
+if command -v just >/dev/null 2>&1
+then
+  _zsh_cache just "just --completions zsh"
+fi
+
+# tmux auto-attach — last, so the mise-managed tmux binary is on PATH.
+if [[ -z "$TMUX" && -z "$HERDR_ENV" ]] && [[ -o interactive ]] && command -v tmux >/dev/null 2>&1
+then
+  tmux attach || tmux
 fi
