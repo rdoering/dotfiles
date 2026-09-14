@@ -5,6 +5,9 @@ export XDG_DATA_HOME=${HOME}/.local/share
 export XDG_STATE_HOME=${HOME}/.local/state
 export XDG_BIN_DIR=${HOME}/.local/bin
 
+# opt-in profiling: ZSH_PROF=1 zsh -l -ic exit  ->  per-function timings (zprof)
+[[ -n $ZSH_PROF ]] && zmodload zsh/zprof
+
 
 # link local brew
 if [ -n "$(command -v brew)" ] && [ -e "${HOME}/.local/share/homebrew" ]
@@ -39,8 +42,10 @@ _zsh_cache() {
   if [[ ! -s "$cache_file" ]]; then
     mkdir -p "$cache_dir"
     command ${=gen_cmd} > "$cache_file" 2>/dev/null
+    # precompile to wordcode (.zwc); zsh auto-loads it on source when newer
+    [[ -s "$cache_file" ]] && zcompile "$cache_file" 2>/dev/null
     for f in "$cache_dir"/${name}_*.zsh(N); do
-      [[ "$f" != "$cache_file" ]] && rm -f -- "$f"
+      [[ "$f" != "$cache_file" ]] && rm -f -- "$f" "$f.zwc"
     done
   fi
   [[ -s "$cache_file" ]] && source "$cache_file"
@@ -55,6 +60,7 @@ autoload -Uz compinit
 # -i skips the insecure-directory audit (compaudit) for faster startup.
 if [[ -n ~/.zcompdump(#qN.mh+24) ]]; then
   compinit -i
+  zcompile ~/.zcompdump 2>/dev/null
 else
   compinit -C -i
 fi
@@ -229,11 +235,12 @@ then
   }
 fi
 
-# OpenCode - AI-powered code editor
+# OpenCode - AI-powered code editor. The generated zsh script ends in a
+# bash-only `complete` builtin line (yargs quirk) — filter it out.
 if command -v opencode >/dev/null 2>&1
 then
   alias oc="opencode"
-  _zsh_cache opencode "opencode completion"
+  _zsh_cache opencode "opencode completion | grep -v -e ^complete"
   compdef _opencode_yargs_completions oc
 fi
 
@@ -255,3 +262,5 @@ if [[ -z "$TMUX" && -z "$HERDR_ENV" ]] && [[ -o interactive ]] && command -v tmu
 then
   tmux attach || tmux
 fi
+
+[[ -n $ZSH_PROF ]] && zprof
