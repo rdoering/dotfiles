@@ -1,0 +1,83 @@
+{
+  "model": "sonnet",
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/nix/store/1qiwn71fd21yaxxfdymaa0mwlymvbrq1-ccboard-0.23.0/bin/ccboard hook Notification"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/nix/store/1qiwn71fd21yaxxfdymaa0mwlymvbrq1-ccboard-0.23.0/bin/ccboard hook PostToolUse"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/nix/store/1qiwn71fd21yaxxfdymaa0mwlymvbrq1-ccboard-0.23.0/bin/ccboard hook PreToolUse"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/home/qtc340/.claude/hooks/herdr-agent-state.sh' session",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/nix/store/1qiwn71fd21yaxxfdymaa0mwlymvbrq1-ccboard-0.23.0/bin/ccboard hook Stop"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/nix/store/1qiwn71fd21yaxxfdymaa0mwlymvbrq1-ccboard-0.23.0/bin/ccboard hook UserPromptSubmit"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "/home/qtc340/.claude/statusline.sh"
+  },
+  "effortLevel": "medium",
+  "tui": "fullscreen",
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "light-daltonized",
+  "enabledPlugins": {
+    "rust-analyzer-lsp@claude-plugins-official": true
+  }
+}
