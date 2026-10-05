@@ -18,6 +18,7 @@
         - p7zip
         - sysbench
         - btop
+        - iperf3
 
   tasks:
     - name: Get my user
