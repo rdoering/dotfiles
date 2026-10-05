@@ -54,3 +54,26 @@ else
     status_line fail mise "tool install failed"
     exit 1
 fi
+
+# claude-code ships a placeholder bin/claude.exe that its own postinstall
+# script replaces with the real platform binary from an optional dependency
+# (e.g. @anthropic-ai/claude-code-linux-x64). mise's npm backend has been
+# observed to skip that postinstall step on some installs even though the
+# platform package itself was fetched correctly, leaving the placeholder in
+# place. Detect and re-run it here rather than relying on install to always
+# trigger it.
+CLAUDE_DIR="$("$MISE_BIN" where npm:@anthropic-ai/claude-code 2>/dev/null || true)"
+if [[ -n "$CLAUDE_DIR" ]]; then
+    CLAUDE_BIN="$CLAUDE_DIR/node_modules/@anthropic-ai/claude-code/bin/claude.exe"
+    if [[ -f "$CLAUDE_BIN" ]] && grep -q "claude native binary not installed" "$CLAUDE_BIN" 2>/dev/null; then
+        status_line run claude-code "postinstall did not run, re-linking native binary"
+        if "$MISE_BIN" exec node -- node "$CLAUDE_DIR/node_modules/@anthropic-ai/claude-code/install.cjs" 2>&1 | indent; then
+            status_line ok claude-code "native binary linked"
+        else
+            status_line fail claude-code "could not link native binary"
+            exit 1
+        fi
+    else
+        status_line skip claude-code "native binary already linked"
+    fi
+fi
