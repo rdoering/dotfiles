@@ -41,7 +41,7 @@ _zsh_cache() {
   local cache_file="$cache_dir/${name}_${ver}.zsh"
   if [[ ! -s "$cache_file" ]]; then
     mkdir -p "$cache_dir"
-    command ${=gen_cmd} > "$cache_file" 2>/dev/null
+    eval "$gen_cmd" > "$cache_file" 2>/dev/null
     # precompile to wordcode (.zwc); zsh auto-loads it on source when newer
     [[ -s "$cache_file" ]] && zcompile "$cache_file" 2>/dev/null
     for f in "$cache_dir"/${name}_*.zsh(N); do
